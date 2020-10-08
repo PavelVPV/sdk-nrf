@@ -17,9 +17,9 @@ static void encode_presence(struct net_buf_simple *buf, enum bt_mesh_chat_presen
 	net_buf_simple_add_u8(buf, presence);
 }
 
-static void decode_presence(struct net_buf_simple_buf *buf, struct bt_mesh_chat_presence *presence)
+static void decode_presence(struct net_buf_simple *buf, struct bt_mesh_chat_presence *presence)
 {
-	presence->stat = net_buf_simple_pull_u8(buf);
+	presence->presence = net_buf_simple_pull_u8(buf);
 }
 
 static void message_reply_send(struct bt_mesh_chat *chat, struct bt_mesh_msg_ctx *ctx)
@@ -28,7 +28,7 @@ static void message_reply_send(struct bt_mesh_chat *chat, struct bt_mesh_msg_ctx
 				 BT_MESH_CHAT_MSG_LEN_MESSAGE_REPLY);
 	bt_mesh_model_msg_init(&msg, BT_MESH_CHAT_OP_MESSAGE_REPLY);
 
-	(void)bt_mesh_model_send(chat->model, ctx, &msg);
+	(void)bt_mesh_model_send(chat->model, ctx, &msg, NULL, 0);
 }
 
 static void handle_message(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
@@ -81,7 +81,7 @@ static void handle_presence(struct bt_mesh_model *model,
 	struct bt_mesh_chat *chat = model->user_data;
 	struct bt_mesh_chat_presence presence;
 
-	decode_presence(chat, &presence);
+	decode_presence(buf, &presence);
 
 	if (chat->handlers->presence) {
 		chat->handlers->presence(chat, ctx, &presence);
@@ -127,7 +127,7 @@ int bt_mesh_chat_presence_pub(struct bt_mesh_chat *chat,
 	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_CHAT_OP_PRESENCE,
 				 BT_MESH_CHAT_MSG_LEN_PRESENCE);
 
-	chat->presence = pres->stat;
+	chat->presence = pres->presence;
 	encode_presence(&msg, chat->presence);
 
 	return model_send(chat->model, ctx, &msg);
@@ -138,14 +138,14 @@ int bt_mesh_chat_message_pub(struct bt_mesh_chat *chat,
 			     const struct bt_mesh_chat_message *msg,
 			     bool ack)
 {
-	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_CHAT_OP_MESSAGE,
+	BT_MESH_MODEL_BUF_DEFINE(buf, BT_MESH_CHAT_OP_MESSAGE,
 				 BT_MESH_CHAT_MSG_MAXLEN_MESSAGE);
-	bt_mesh_model_msg_init(&msg, BT_MESH_CHAT_OP_MESSAGE);
+	bt_mesh_model_msg_init(&buf, BT_MESH_CHAT_OP_MESSAGE);
 
-	net_buf_simple_add_u8(&msg, chat->tid++);
-	net_buf_simple_add_mem(&msg, msg->msg, strnlen(msg->msg, BT_MESH_CHAT_MSG_MAXLEN_MESSAGE));
+	net_buf_simple_add_u8(&buf, chat->tid++);
+	net_buf_simple_add_mem(&buf, msg->msg, strnlen(msg->msg, BT_MESH_CHAT_MSG_MAXLEN_MESSAGE));
 
-	return model_ackd_send(chat->model, ctx, &msg,
+	return model_ackd_send(chat->model, ctx, &buf,
 			       ack ? &chat->ack_ctx : NULL,
 			       BT_MESH_CHAT_OP_MESSAGE_REPLY, NULL);
 }

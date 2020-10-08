@@ -47,7 +47,7 @@ struct bt_mesh_onoff_srv;
  * @param[in] _srv Pointer to a @ref bt_mesh_onoff_srv instance.
  */
 #define BT_MESH_MODEL_ONOFF_SRV(_srv)                                          \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_ONOFF_SRV,                       \
+	BT_MESH_MODEL_CB(0x0042,                       \
 			 _bt_mesh_onoff_srv_op, &(_srv)->pub,                  \
 			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_onoff_srv,     \
 						 _srv),                        \

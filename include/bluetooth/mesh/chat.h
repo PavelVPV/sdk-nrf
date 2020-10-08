@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 #define BT_MESH_VENDOR_MODEL_ID_CHAT             0x0042
-#define BT_MESH_VENDOR_COMPANY_ID                0x0059 // FIXME: There is somewhere COMPANY_ID define
+#define BT_MESH_VENDOR_COMPANY_ID                0x0059 // FIXME: Use CONFIG_BT_COMPANY_ID
 
 /** @cond INTERNAL_HIDDEN */
 #define BT_MESH_CHAT_OP_MESSAGE BT_MESH_MODEL_OP_3(0xD1, BT_MESH_VENDOR_COMPANY_ID)
@@ -49,11 +49,11 @@ enum bt_mesh_chat_presence_state
 };
 
 struct bt_mesh_chat_presence {
-	enum bt_mesh_chat_presence_state stat;
+	enum bt_mesh_chat_presence_state presence;
 };
 
 struct bt_mesh_chat_message {
-	uint8_t msg[];
+	uint8_t *msg;
 };
 
 struct bt_mesh_chat;
@@ -70,7 +70,7 @@ struct bt_mesh_chat;
 		.pub = {                                                       \
 			.update = _bt_mesh_chat_update_handler,           \
 			.msg = NET_BUF_SIMPLE(BT_MESH_MODEL_BUF_LEN(           \
-				BT_MESH_CHAT_OP_STATUS,                       \
+				BT_MESH_CHAT_OP_MESSAGE,                       \
 				BT_MESH_CHAT_MSG_MAXLEN_MESSAGE)),             \
 		},                                                             \
 	}
@@ -82,7 +82,7 @@ struct bt_mesh_chat;
  * @param[in] _srv Pointer to a @ref bt_mesh_chat instance.
  */
 #define BT_MESH_MODEL_CHAT(_srv)                                          \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_ONOFF_SRV,                       \
+	BT_MESH_MODEL_CB(BT_MESH_VENDOR_MODEL_ID_CHAT,                       \
 			 _bt_mesh_chat_op, &(_srv)->pub,                  \
 			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_chat,     \
 						 _srv),                        \
@@ -125,7 +125,7 @@ struct bt_mesh_chat {
 
 int bt_mesh_chat_presence_pub(struct bt_mesh_chat *chat,
 			  struct bt_mesh_msg_ctx *ctx,
-			  const struct bt_mesh_chate_presence *pres);
+			  const struct bt_mesh_chat_presence *pres);
 
 int bt_mesh_chat_message_pub(struct bt_mesh_chat *chat,
 			  struct bt_mesh_msg_ctx *ctx,
