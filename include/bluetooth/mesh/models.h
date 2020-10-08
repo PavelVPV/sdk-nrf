@@ -53,6 +53,9 @@
 #include <bluetooth/mesh/time_cli.h>
 #include <bluetooth/mesh/time_srv.h>
 
+/* Vendor models */
+#include <bluetooth/mesh/chat.h>
+
 /** @brief Check whether the model publishes to a unicast address.
  *
  * @param[in] mod Model to check

@@ -1,0 +1,26 @@
+#
+# Copyright (c) 2020 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+#
+
+comment "Vendor specific models."
+
+menuconfig BT_MESH_CHAT
+	bool "Chat vendor model"
+	select BT_MESH_NRF_MODELS
+	help
+	  Chat vendor model
+
+if BT_MESH_CHAT
+
+config BT_MESH_CHAT_MESSAGE_BUFFER_SIZE
+	int "Chat message max length"
+	default 100
+	range 1 255
+
+module = BT_MESH_CHAT
+module-str = BT Mesh Chat model
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+endif # BT_MESH_CHAT

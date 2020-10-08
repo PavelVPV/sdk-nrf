@@ -534,4 +534,6 @@ config BT_MESH_SENSOR_CLI
 
 rsource "Kconfig.sensor"
 
+rsource "Kconfig.vndmodels"
+
 endmenu
