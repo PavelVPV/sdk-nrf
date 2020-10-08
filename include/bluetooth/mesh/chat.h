@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 #define BT_MESH_VENDOR_MODEL_ID_CHAT             0x0042
-#define BT_MESH_VENDOR_COMPANY_ID                0x0059
+#define BT_MESH_VENDOR_COMPANY_ID                0x0059 // FIXME: There is somewhere COMPANY_ID define
 
 /** @cond INTERNAL_HIDDEN */
 #define BT_MESH_CHAT_OP_MESSAGE BT_MESH_MODEL_OP_3(0xD1, BT_MESH_VENDOR_COMPANY_ID)
@@ -48,24 +48,12 @@ enum bt_mesh_chat_presence_state
     BT_MESH_CHAT_PRESENCE_STATE_DO_NOT_DISTURB
 };
 
-/** Mesh Chat reliable message status values. */
-enum bt_mesh_chat_message_status
-{
-    BT_MESH_CHAT_MESSAGE_STATUS_SUCCESS,
-    BT_MESH_CHAT_MESSAGE_STATUS_ERROR_NO_REPLY,
-    BT_MESH_CHAT_MESSAGE_STATUS_CANCELLED
-};
-
 struct bt_mesh_chat_presence {
 	enum bt_mesh_chat_presence_state stat;
 };
 
 struct bt_mesh_chat_message {
-	uint8_t msg[CONFIG_BT_MESH_CHAT_MESSAGE_BUFFER_SIZE];
-};
-
-struct bt_mesh_chat_message_reply {
-	enum bt_mesh_chat_message_status stat;
+	uint8_t msg[];
 };
 
 struct bt_mesh_chat;
@@ -110,9 +98,8 @@ struct bt_mesh_chat_handlers {
 			  struct bt_mesh_msg_ctx *ctx,
 			  struct bt_mesh_chat_message *rsp);
 
-	void (*const message_status)(struct bt_mesh_chat *chat,
-			  struct bt_mesh_msg_ctx *ctx,
-			  struct bt_mesh_chat_message_reply *rsp);
+	void (*const message_reply)(struct bt_mesh_chat *chat,
+			  struct bt_mesh_msg_ctx *ctx);
 };
 
 /**
@@ -121,14 +108,30 @@ struct bt_mesh_chat_handlers {
  */
 struct bt_mesh_chat {
 	/** Transaction ID tracker. */
-	struct bt_mesh_tid_ctx tid;
+	struct bt_mesh_tid_ctx prev_transaction;
+	/** Current Transaction ID. */
+	uint8_t tid;
 	/** Handler function structure. */
 	const struct bt_mesh_chat_handlers *handlers;
+	/** Response context for tracking acknowledged messages. */
+	struct bt_mesh_model_ack_ctx ack_ctx;
 	/** Access model pointer. */
 	struct bt_mesh_model *model;
 	/** Publish parameters. */
 	struct bt_mesh_model_pub pub;
+	/** Current presence state. */
+	enum bt_mesh_chat_presence_state presence;
 };
+
+int bt_mesh_chat_presence_pub(struct bt_mesh_chat *chat,
+			  struct bt_mesh_msg_ctx *ctx,
+			  const struct bt_mesh_chate_presence *pres);
+
+int bt_mesh_chat_message_pub(struct bt_mesh_chat *chat,
+			  struct bt_mesh_msg_ctx *ctx,
+			  const struct bt_mesh_chat_message *msg,
+			  bool ack);
+
 
 /** @cond INTERNAL_HIDDEN */
 extern const struct bt_mesh_model_op _bt_mesh_chat_op[];
