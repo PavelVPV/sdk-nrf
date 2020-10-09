@@ -64,11 +64,12 @@ struct bt_mesh_chat;
  *
  * @param[in] _handlers State access handlers to use in the model instance.
  */
-#define BT_MESH_CHAT_INIT(_handlers)                                      \
+#define BT_MESH_CHAT_INIT(_handlers)                                           \
 	{                                                                      \
+		.presence = BT_MESH_CHAT_PRESENCE_STATE_AVAILABLE,             \
 		.handlers = _handlers,                                         \
 		.pub = {                                                       \
-			.update = _bt_mesh_chat_update_handler,           \
+			.update = _bt_mesh_chat_update_handler,                \
 			.msg = NET_BUF_SIMPLE(BT_MESH_MODEL_BUF_LEN(           \
 				BT_MESH_CHAT_OP_MESSAGE,                       \
 				BT_MESH_CHAT_MSG_MAXLEN_MESSAGE)),             \
@@ -82,8 +83,9 @@ struct bt_mesh_chat;
  * @param[in] _srv Pointer to a @ref bt_mesh_chat instance.
  */
 #define BT_MESH_MODEL_CHAT(_srv)                                          \
-	BT_MESH_MODEL_CB(BT_MESH_VENDOR_MODEL_ID_CHAT,                       \
-			 _bt_mesh_chat_op, &(_srv)->pub,                  \
+		BT_MESH_MODEL_VND_CB(CONFIG_BT_COMPANY_ID, \
+			BT_MESH_VENDOR_MODEL_ID_CHAT,                       \
+			_bt_mesh_chat_op, &(_srv)->pub,                  \
 			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_chat,     \
 						 _srv),                        \
 			 &_bt_mesh_chat_cb)

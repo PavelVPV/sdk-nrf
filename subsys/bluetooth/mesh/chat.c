@@ -9,7 +9,9 @@
 #include <logging/log.h>
 #include "model_utils.h"
 
-LOG_MODULE_REGISTER(bt_mesh_chat, CONFIG_BT_MESH_CHAT_LOG_LEVEL);
+#define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_MESH_DEBUG_MODEL)
+#define LOG_MODULE_NAME bt_mesh_chat
+#include "common/log.h"
 
 static void encode_presence(struct net_buf_simple *buf, enum bt_mesh_chat_presence_state presence)
 {
@@ -126,6 +128,8 @@ int bt_mesh_chat_presence_pub(struct bt_mesh_chat *chat,
 {
 	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_CHAT_OP_PRESENCE,
 				 BT_MESH_CHAT_MSG_LEN_PRESENCE);
+
+	BT_DBG("Publishing presence: %d", pres->presence);
 
 	chat->presence = pres->presence;
 	encode_presence(&msg, chat->presence);
