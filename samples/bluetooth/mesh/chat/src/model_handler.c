@@ -91,7 +91,7 @@ static void handle_chat_message(struct bt_mesh_chat *chat,
 				struct bt_mesh_chat_message *rsp)
 {
 	LOG_INF("[%04X]: %s", ctx->addr, rsp->msg);
-	uart_handler_tx(rsp->msg, strnlen(rsp->msg, UINT8_MAX));
+	uart_handler_tx(rsp->msg);
 }
 
 static void handle_chat_message_reply(struct bt_mesh_chat *chat,
@@ -215,25 +215,29 @@ static const struct uart_cmd_handler uart_cmd_handlers[] = {
 	{"/presence ", uart_cmd_presence},
 };
 
-static void uart_handler_rx_callback(const uint8_t * data, uint8_t len)
+static void uart_handler_rx_callback(const uint8_t * str)
 {
 	size_t i;
-	int err;
 
-	if (data[0] != '/') {
-		LOG_WRN("Not a command");
-		return;
+	if (str[0] != '/') {
+		goto unknown_command;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(uart_cmd_handlers); i++) {
+		size_t str_len = strlen(str);
 		size_t cmd_len = strlen(uart_cmd_handlers[i].name);
-		if (len > cmd_len && !strncmp(data, uart_cmd_handlers[i].name, cmd_len)) {
-			uart_cmd_handlers[i].handler(&data[cmd_len], len - cmd_len);
+
+		if (str_len > cmd_len && !strncmp(str, uart_cmd_handlers[i].name, cmd_len)) {
+			uart_cmd_handlers[i].handler(&str[cmd_len], str_len - cmd_len);
 			return;
 		}
 	}
 
-	LOG_INF("Unknown command");
+unknown_command:
+	uart_handler_tx("Unknown command. Expected list of commands:");
+	for (i = 0; i < ARRAY_SIZE(uart_cmd_handlers); i++) {
+		uart_handler_tx(uart_cmd_handlers[i].name);
+	}
 }
 
 const struct bt_mesh_comp *model_handler_init(void)

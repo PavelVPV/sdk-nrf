@@ -16,10 +16,10 @@
 extern "C" {
 #endif
 
-typedef void (*uart_handler_rx_callback_t)(const uint8_t * data, uint8_t len);
+typedef void (*uart_handler_rx_callback_t)(const uint8_t * str);
 
 int uart_handler_init(uart_handler_rx_callback_t rx_cb);
-void uart_handler_tx(const uint8_t *const data, uint16_t len);
+void uart_handler_tx(const uint8_t * str);
 
 #ifdef __cplusplus
 }

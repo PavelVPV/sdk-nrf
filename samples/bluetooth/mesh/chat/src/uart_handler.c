@@ -43,12 +43,13 @@ static void uart_cb(struct device *dev, struct uart_event *evt, void *user_data)
 	struct uart_data_t *buf;
 	static uint8_t *aborted_buf;
 
-	LOG_INF("uart_cb");
+	LOG_WRN("uart_cb: %d", evt->type);
 
 	switch (evt->type) {
 	case UART_TX_DONE:
 		if ((evt->data.tx.len == 0) ||
 		    (!evt->data.tx.buf)) {
+			LOG_WRN("No buf");
 			return;
 		}
 
@@ -66,8 +67,11 @@ static void uart_cb(struct device *dev, struct uart_event *evt, void *user_data)
 
 		buf = k_fifo_get(&fifo_uart_tx_data, K_NO_WAIT);
 		if (!buf) {
+			LOG_WRN("Fifo empty");
 			return;
 		}
+
+		LOG_WRN("Sending len: %d", buf->len);
 
 		if (uart_tx(uart, buf->data, buf->len, SYS_FOREVER_MS)) {
 			LOG_WRN("Failed to send data over UART");
@@ -85,9 +89,11 @@ static void uart_cb(struct device *dev, struct uart_event *evt, void *user_data)
 		} else if ((evt->data.rx.buf[buf->len - 1] == '\n') ||
 			  (evt->data.rx.buf[buf->len - 1] == '\r')) {
 			buf->data[buf->len - 1] = '\0';
+
 			k_fifo_put(&fifo_uart_rx_data, buf);
 			current_buf = evt->data.rx.buf;
 			buf_release = true;
+
 			uart_rx_disable(uart);
 		}
 
@@ -159,7 +165,7 @@ static void uart_read_thread(void)
 		struct uart_data_t *buf = k_fifo_get(&fifo_uart_rx_data,
 						     K_FOREVER);
 
-		callback(buf->data, buf->len);
+		callback(buf->data);
 
 		k_free(buf);
 	}
@@ -216,12 +222,10 @@ int uart_handler_init(uart_handler_rx_callback_t rx_cb)
 	callback = rx_cb;
 	k_sem_give(&uart_init_ok);
 
-	LOG_INF("uart init ok");
-
 	return 0;
 }
 
-void uart_handler_tx(const uint8_t *const data, uint16_t len)
+void uart_handler_tx(const uint8_t * str)
 {
 	struct uart_data_t *tx = k_malloc(sizeof(*tx));
 	int err;
@@ -231,15 +235,14 @@ void uart_handler_tx(const uint8_t *const data, uint16_t len)
 		return;
 	}
 
-	tx->len = MIN(len, sizeof(tx->data) - 2);
-
-	memcpy(tx->data, data, tx->len);
+	tx->len = strnlen(str, sizeof(tx->data) - 2);
+	memcpy(tx->data, str, tx->len);
 
 	tx->data[tx->len++] = '\n';
-	tx->data[tx->len++] = '\r';
 
 	err = uart_tx(uart, tx->data, tx->len, SYS_FOREVER_MS);
 	if (err) {
+		LOG_WRN("Failed to send data immediately: %d", err);
 		k_fifo_put(&fifo_uart_tx_data, tx);
 	}
 }
