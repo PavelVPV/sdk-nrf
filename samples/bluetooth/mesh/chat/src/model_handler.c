@@ -72,37 +72,18 @@ BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 
 /* Chat model */
 
-static const char * presence_to_string(enum bt_mesh_chat_presence_state state)
-{
-	const char *str = "unknown";
-
-	switch (state)
-	{
-		case BT_MESH_CHAT_PRESENCE_STATE_AVAILABLE:
-			str = "available";
-			break;
-
-		case BT_MESH_CHAT_PRESENCE_STATE_AWAY:
-			str = "away";
-			break;
-
-		case BT_MESH_CHAT_PRESENCE_STATE_DO_NOT_DISTURB:
-			str = "do not disturb";
-			break;
-
-		case BT_MESH_CHAT_PRESENCE_STATE_INACTIVE:
-			str = "inactive";
-			break;
-	}
-
-	return str;
-}
+static const uint8_t* presence_string[] = {
+	[BT_MESH_CHAT_PRESENCE_STATE_AVAILABLE] = "available",
+	[BT_MESH_CHAT_PRESENCE_STATE_AWAY] = "away",
+	[BT_MESH_CHAT_PRESENCE_STATE_DO_NOT_DISTURB] = "dnd",
+	[BT_MESH_CHAT_PRESENCE_STATE_INACTIVE] = "inactive",
+};
 
 static void handle_chat_presence(struct bt_mesh_chat *chat,
 				 struct bt_mesh_msg_ctx *ctx,
 				 struct bt_mesh_chat_presence *rsp)
 {
-	LOG_INF("---> [%04X] changed presence to: [%s]", ctx->addr, presence_to_string(rsp->presence));
+	LOG_INF("---> [%04X] changed presence to: [%s]", ctx->addr, presence_string[rsp->presence]);
 }
 
 static void handle_chat_message(struct bt_mesh_chat *chat,
@@ -180,34 +161,79 @@ static void button_handler_cb(uint32_t pressed, uint32_t changed)
 		err = bt_mesh_chat_presence_pub(&chat, NULL, &presence);
 
 		if (err) {
-			printk("Presence %d sentt failed: %d\n", presence.presence, err);
+			printk("Presence %d send failed: %d\n", presence.presence, err);
 		}
 	}
 }
 
-static void uart_handler_rx_callback(const uint8_t * data, uint8_t len)
+struct uart_cmd_handler {
+	const uint8_t * name;
+	void (*handler)(const uint8_t * data, uint8_t len);
+};
+
+static void uart_cmd_send(const uint8_t * data, uint8_t len)
 {
 	struct bt_mesh_chat_message msg;
 	int err;
 
-#if 0
-	msg.msg = k_malloc(len);
-	if (!msg.msg) {
-		LOG_WRN("Unable to alloc mem");
-		return;
-	}
-	memcpy(msg.msg, data, len);
-	k_free(msg.msg);
-#else
 	msg.msg = data;
-#endif
 
-#if 1
+	LOG_INF("Sending message");
+
 	err = bt_mesh_chat_message_pub(&chat, NULL, &msg, false);
 	if (err) {
-		LOG_WRN("No ACK received");
+		LOG_WRN("Failed to publish message: %d", err);
 	}
-#endif
+}
+
+static void uart_cmd_presence(const uint8_t * data, uint8_t len)
+{
+	size_t i;
+	int err;
+
+	for (i = 0; i < ARRAY_SIZE(presence_string); i++) {
+		if (!strcmp(data, presence_string[i])) {
+			struct bt_mesh_chat_presence pres;
+			pres.presence = i;
+
+			LOG_INF("Updating presence");
+
+			err = bt_mesh_chat_presence_pub(&chat, NULL, &pres);
+			if (err) {
+				LOG_WRN("Failed to update presence");
+			}
+
+			return;
+		}
+	}
+
+	LOG_WRN("Unknown presence");
+}
+
+static const struct uart_cmd_handler uart_cmd_handlers[] = {
+	{"/send ", uart_cmd_send},
+	{"/presence ", uart_cmd_presence},
+};
+
+static void uart_handler_rx_callback(const uint8_t * data, uint8_t len)
+{
+	size_t i;
+	int err;
+
+	if (data[0] != '/') {
+		LOG_WRN("Not a command");
+		return;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(uart_cmd_handlers); i++) {
+		size_t cmd_len = strlen(uart_cmd_handlers[i].name);
+		if (len > cmd_len && !strncmp(data, uart_cmd_handlers[i].name, cmd_len)) {
+			uart_cmd_handlers[i].handler(&data[cmd_len], len - cmd_len);
+			return;
+		}
+	}
+
+	LOG_INF("Unknown command");
 }
 
 const struct bt_mesh_comp *model_handler_init(void)

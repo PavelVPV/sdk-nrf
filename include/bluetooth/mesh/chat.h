@@ -53,7 +53,7 @@ struct bt_mesh_chat_presence {
 };
 
 struct bt_mesh_chat_message {
-	uint8_t *msg;
+	const uint8_t *msg;
 };
 
 struct bt_mesh_chat;
