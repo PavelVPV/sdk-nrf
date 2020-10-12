@@ -4,9 +4,12 @@
  * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
 
+#include <stdio.h>
+
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 #include <dk_buttons_and_leds.h>
+
 #include "model_handler.h"
 #include "uart_handler.h"
 
@@ -83,21 +86,42 @@ static void handle_chat_presence(struct bt_mesh_chat *chat,
 				 struct bt_mesh_msg_ctx *ctx,
 				 struct bt_mesh_chat_presence *rsp)
 {
-	LOG_INF("---> [%04X] changed presence to: [%s]", ctx->addr, presence_string[rsp->presence]);
+	const uint16_t msg_len = 30;
+	uint8_t * msg = k_malloc(msg_len);
+	if (msg) {
+		snprintf(msg, msg_len, "---> 0x%04X is now %s", ctx->addr, presence_string[rsp->presence]);
+
+		uart_handler_tx(msg);
+
+		k_free(msg);
+	}
 }
 
 static void handle_chat_message(struct bt_mesh_chat *chat,
 				struct bt_mesh_msg_ctx *ctx,
 				struct bt_mesh_chat_message *rsp)
 {
-	LOG_INF("[%04X]: %s", ctx->addr, rsp->msg);
-	uart_handler_tx(rsp->msg);
+	const uint16_t msg_len = CONFIG_BT_MESH_CHAT_MESSAGE_BUFFER_SIZE + 11;
+	uint8_t * msg = k_malloc(msg_len);
+	if (msg) {
+		snprintf(msg, msg_len, "<0x%04X>: %s", ctx->addr, rsp->msg);
+
+		uart_handler_tx(msg);
+
+		k_free(msg);
+	}
 }
 
 static void handle_chat_message_reply(struct bt_mesh_chat *chat,
 				      struct bt_mesh_msg_ctx *ctx)
 {
-	LOG_INF("<--- reply received from [%04X]", ctx->addr);
+	const uint16_t msg_len = 30;
+	uint8_t * msg = k_malloc(msg_len);
+	if (msg) {
+		snprintf(msg, msg_len, "---> reply received from 0x%04X", ctx->addr);
+
+		k_free(msg);
+	}
 }
 
 static const struct bt_mesh_chat_handlers chat_handlers = {
@@ -207,7 +231,15 @@ static void uart_cmd_presence(const uint8_t * data, uint8_t len)
 		}
 	}
 
-	LOG_WRN("Unknown presence");
+	const uint16_t msg_len = 22 + len;
+	uint8_t * msg = k_malloc(msg_len);
+	if (msg) {
+		snprintf(msg, msg_len, "Unknown presence: %s", data);
+
+		uart_handler_tx(msg);
+
+		k_free(msg);
+	}
 }
 
 static const struct uart_cmd_handler uart_cmd_handlers[] = {

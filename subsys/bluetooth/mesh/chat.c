@@ -147,7 +147,7 @@ int bt_mesh_chat_message_pub(struct bt_mesh_chat *chat,
 	bt_mesh_model_msg_init(&buf, BT_MESH_CHAT_OP_MESSAGE);
 
 	net_buf_simple_add_u8(&buf, chat->tid++);
-	net_buf_simple_add_mem(&buf, msg->msg, strnlen(msg->msg, BT_MESH_CHAT_MSG_MAXLEN_MESSAGE));
+	net_buf_simple_add_mem(&buf, msg->msg, strnlen(msg->msg, BT_MESH_CHAT_MSG_MAXLEN_MESSAGE) + 1 /* \0 */);
 
 	return model_ackd_send(chat->model, ctx, &buf,
 			       ack ? &chat->ack_ctx : NULL,

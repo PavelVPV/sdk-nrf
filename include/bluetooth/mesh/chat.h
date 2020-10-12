@@ -52,6 +52,10 @@ struct bt_mesh_chat_presence {
 	enum bt_mesh_chat_presence_state presence;
 };
 
+/**
+ * Always contains the terminating null byte ('\0'). Use strlen (strnlen)
+ * to get the length of the message.
+ */
 struct bt_mesh_chat_message {
 	const uint8_t *msg;
 };

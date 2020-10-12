@@ -13,7 +13,7 @@ LOG_MODULE_DECLARE(chat, 4);
 #define STACKSIZE 1024
 #define PRIORITY 7
 
-#define UART_BUF_SIZE CONFIG_BT_MESH_CHAT_MESSAGE_BUFFER_SIZE + 2 /* + \n\r */
+#define UART_BUF_SIZE CONFIG_BT_MESH_CHAT_MESSAGE_BUFFER_SIZE + 3 /* + \n\r\0 */
 #define UART_WAIT_FOR_BUF_DELAY K_MSEC(50)
 #define UART_WAIT_FOR_RX 50
 
@@ -235,10 +235,12 @@ void uart_handler_tx(const uint8_t * str)
 		return;
 	}
 
-	tx->len = strnlen(str, sizeof(tx->data) - 2);
+	tx->len = strnlen(str, sizeof(tx->data) - 3); /* + \n\r\0 */
 	memcpy(tx->data, str, tx->len);
 
 	tx->data[tx->len++] = '\n';
+	tx->data[tx->len++] = '\r';
+	tx->data[tx->len++] = '\0';
 
 	err = uart_tx(uart, tx->data, tx->len, SYS_FOREVER_MS);
 	if (err) {
