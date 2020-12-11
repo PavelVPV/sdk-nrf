@@ -1,13 +1,20 @@
-.. _bluetooth_mesh_chat:
+.. _bt_mesh_chat:
 
 Bluetooth: Mesh Chat
 ####################
 
-The Bluetooth Mesh Chat sample demonstrates how the mesh network can be used to facilitate communication between nodes by text, using the :ref:`bluetooth_mesh_chat_client_model`.
+The Bluetooth Mesh Chat sample demonstrates how the mesh network can be used to facilitate communication between nodes by text, using the :ref:`bt_mesh_chat_client_model`.
 By means of the mesh network, the clients as mesh nodes can communicate with each other without the need of a server.
 The sample is mainly designed for group communication, but it also supports one-on-one communication, as well as sharing the nodes presence.
 
 This sample is used in :ref:`ug_bt_mesh_vendor_model` as an example of how to implement a vendor model for the Bluetooth Mesh in |NCS|.
+
+.. toctree::
+   :maxdepth: 1
+   :glob:
+   :caption: Subpages:
+
+   chat_cli.rst
 
 Overview
 ********
@@ -16,10 +23,9 @@ This sample is split into four source files:
 
 * A :file:`main.c` file to handle initialization.
 * A file for handling the Chat Client model, :file:`chat_cli.c`.
-* A file for handling Bluetooth Mesh models, :file:`model_handler.c`.
-* A file for handling communication with UART, :file:`uart_handler.c`.
+* A file for handling Bluetooth Mesh models and communication with the :ref:`shell module <shell_api>`, :file:`model_handler.c`.
 
-After provisioning and configuring the Bluetooth Mesh models supported by the sample in the `nRF Mesh mobile app`_, you can communicate with other mesh nodes by sending text messages and obtaining their presence.
+After provisioning and configuring the Bluetooth Mesh models supported by the sample in the `nRF Mesh mobile app`_, you can communicate with other mesh nodes by sending text messages and obtaining their presence using the :ref:`shell module <shell_api>`.
 
 Provisioning
 ============
@@ -43,92 +49,12 @@ The following table shows the Bluetooth Mesh Chat composition data for this samp
 
 The models are used for the following purposes:
 
-* The :ref:`bluetooth_mesh_chat_client_model` instance in the first element is used to communicate with the other Chat Client models instantiated on the other mesh nodes.
+* The :ref:`bt_mesh_chat_client_model` instance in the first element is used to communicate with the other Chat Client models instantiated on the other mesh nodes.
 * Config Server allows configurator devices to configure the node remotely.
 * Health Server provides ``attention`` callbacks that are used during provisioning to call your attention to the device.
   These callbacks trigger blinking of the LEDs.
 
 The model handling is implemented in :file:`src/model_handler.c`.
-
-.. _bluetooth_mesh_chat_client_model:
-
-Chat Client model
------------------
-
-The Chat Client model is a vendor model that allows communication with other such models, by sending text messages and providing the presence of the model instance.
-It demonstrates basics of a vendor model implementation.
-The model doesn't have a limitation on per-node instantiations of the model, and therefore can be instantiated on each element of the node.
-
-Adding the model to a node composition data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The Chat Client model is a vendor model, and therefore in the application, when defining the node composition data, it needs to be declared in the third argument in :c:macro:`BT_MESH_ELEM` macro:
-
-.. code-block:: c
-
-    static struct bt_mesh_elem elements[] = {
-        BT_MESH_ELEM(1,
-            BT_MESH_MODEL_LIST(
-                BT_MESH_MODEL_CFG_SRV(&cfg_srv),
-                BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
-            BT_MESH_MODEL_LIST(
-                BT_MESH_MODEL_CHAT_CLI(&chat))),
-    };
-
-.. _bluetooth_mesh_chat_client_model_message_sending:
-
-Message sending
-^^^^^^^^^^^^^^^
-
-For sending a text message, the Chat Client model implements both ways defined by :ref:`zephyr:bluetooth_mesh_access`.
-It uses the model publication context for sending non-private messages.
-To send private messages, it uses a custom :c:struct:`bt_mesh_model_ctx`.
-
-.. _bluetooth_mesh_chat_client_model_presence:
-
-Presence
-^^^^^^^^
-
-The Chat Client model enables a user to set a current presence of the client instantiated on the element of the node.
-
-When the presence is changed, the model uses :c:struct:`bt_mesh_model_pub` to publish its presence to the mesh network.
-The model also allow to retrieve the current presence of another model using a custom :c:struct:`bt_mesh_model_ctx`.
-
-The model stores its current presence in the Bluetooth Mesh persisted storage.
-It will restore the presence, when the data is loaded from persisted storage.
-When the node reset is applied, the default value will be restored.
-
-.. _bluetooth_mesh_chat_client_model_messages:
-
-Messages
-^^^^^^^^
-
-The Chat Client model defines the following messages:
-
-Presence
-   Used to report the current model presence.
-   When the model periodic publication is configured, the Chat Client model will publish its current presence, regardless of whether it has been changed or not.
-   Presence message has a defined length of 1 byte.
-
-Presence Get
-   Used to retrieve the current model presence.
-   Upon receiving the Presence Get message, the Chat Client model will send the Presence message with the current model presence stored in the response.
-   The message doesn't have any payload.
-
-Message
-   Used to send a non-private text message.
-   The payload consists of the text string terminated by ``\0``.
-   The length of the text string can be configured at the compile-time using `BT_MESH_CHAT_CLI_MESSAGE_LENGTH` option.
-
-Private Message
-   Used to send a private text message.
-   When the model receives this message, it replies with the Message Reply.
-   The payload consists of the text string terminated by ``\0``.
-   The length of the text string can be configured at the compile-time using `BT_MESH_CHAT_CLI_MESSAGE_LENGTH` option.
-
-Message Reply
-   Used to reply on the received Private Message to confirm the reception.
-   The message doesn't have any payload.
 
 Requirements
 ************
@@ -137,23 +63,12 @@ The sample supports the following development kits:
 
 .. table-from-rows:: /includes/sample_board_rows.txt
    :header: heading
-   :rows: nrf5340dk_nrf5340_cpuapp_and_cpuappns, nrf52840dk_nrf52840, nrf52dk_nrf52832, nrf52833dk_nrf52833, nrf52833dk_nrf52820
-
-.. note::
-   If you use nRF5340 PDK, add the following options to the configuration of the network sample:
-
-   .. code-block:: none
-
-      CONFIG_BT_CTLR_TX_BUFFER_SIZE=74
-      CONFIG_BT_CTLR_DATA_LENGTH_MAX=74
-      CONFIG_BT_LL_SW_SPLIT=y
-
-   This is required because Bluetooth Mesh has different |BLE| Controller requirements than other Bluetooth samples.
+   :sample-yaml-rows:
 
 The sample also requires a smartphone with Nordic Semiconductor's nRF Mesh mobile app installed in one of the following versions:
 
-  * `nRF Mesh mobile app for Android`_
-  * `nRF Mesh mobile app for iOS`_
+* `nRF Mesh mobile app for Android`_
+* `nRF Mesh mobile app for iOS`_
 
 User interface
 **************
@@ -260,12 +175,10 @@ chat presence set <presence>
 
 chat presence get <node>
    Gets presence of a specified chat client.
-   Format for node argument: 0xXXXX.
 
 chat private <node> <message>
    Sends a private text message to a specified chat client.
    Remember to embrance the message in double quotes if it has 2 or more words.
-   Format for node argument: 0xXXXX.
 
 chat msg <message>
    Sends a text message to the chat.
@@ -275,7 +188,7 @@ Whenever the node changes its presence, or the local node receives another model
 
 .. code-block:: none
 
-   ---> 0x0002 is now available
+   <0x0002> is now available
 
 When the model receives a message from another node, together with the message you will see the address of the element of the node that sent the message:
 
@@ -288,7 +201,7 @@ The messages posted by the local node will have ``<you>`` instead of the address
 .. code-block:: none
 
    <you>: Hello, 0x0002!
-   ---> you are now away
+   <you> are now away
 
 Private messages can be identified by the address of the element of the node that posted the message (enclosed in asterisks):
 
@@ -301,7 +214,7 @@ When the reply is received, you will see the following:
 
 .. code-block:: none
 
-   ---> reply received from 0x0004
+   <0x0004> received the message
 
 Note that private messages are only seen by those the messages are addressed to.
 

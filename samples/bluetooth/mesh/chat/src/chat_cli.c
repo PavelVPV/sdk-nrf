@@ -29,15 +29,6 @@ static void encode_presence(struct net_buf_simple *buf,
 	net_buf_simple_add_u8(buf, presence);
 }
 
-static int publish_buf(struct bt_mesh_chat_cli *chat,
-		       struct net_buf_simple *buf)
-{
-	net_buf_simple_reset(chat->model->pub->msg);
-	net_buf_simple_add_mem(chat->model->pub->msg, buf->data, buf->len);
-
-	return bt_mesh_model_publish(chat->model);
-}
-
 static const uint8_t *extract_msg(struct net_buf_simple *buf)
 {
 	buf->data[buf->len - 1] = '\0';
@@ -225,18 +216,16 @@ static int bt_mesh_chat_cli_start(struct bt_mesh_model *model)
 /* .. include_endpoint_chat_cli_rst_5 */
 
 /* .. include_startingpoint_chat_cli_rst_6 */
-#ifdef CONFIG_BT_SETTINGS
 static void bt_mesh_chat_cli_reset(struct bt_mesh_model *model)
 {
 	struct bt_mesh_chat_cli *chat = model->user_data;
 
 	chat->presence = BT_MESH_CHAT_CLI_PRESENCE_AVAILABLE;
 
-	(void) bt_mesh_model_data_store(model, true, NULL,
-					&chat->presence,
-					sizeof(chat->presence));
+	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
+		(void) bt_mesh_model_data_store(model, true, NULL, NULL, 0);
+	}
 }
-#endif
 /* .. include_endpoint_chat_cli_rst_6 */
 
 /* .. include_startingpoint_chat_cli_rst_7 */
@@ -245,8 +234,8 @@ const struct bt_mesh_model_cb _bt_mesh_chat_cli_cb = {
 	.start = bt_mesh_chat_cli_start,
 #ifdef CONFIG_BT_SETTINGS
 	.settings_set = bt_mesh_chat_cli_settings_set,
-	.reset = bt_mesh_chat_cli_reset,
 #endif
+	.reset = bt_mesh_chat_cli_reset,
 };
 /* .. include_endpoint_chat_cli_rst_7 */
 
@@ -254,38 +243,35 @@ const struct bt_mesh_model_cb _bt_mesh_chat_cli_cb = {
 int bt_mesh_chat_cli_presence_set(struct bt_mesh_chat_cli *chat,
 			 enum bt_mesh_chat_cli_presence presence)
 {
-	BT_MESH_MODEL_BUF_DEFINE(buf, BT_MESH_CHAT_CLI_OP_PRESENCE,
-				 BT_MESH_CHAT_CLI_MSG_LEN_PRESENCE);
-
 	if (presence != chat->presence) {
 		chat->presence = presence;
-#ifdef CONFIG_BT_SETTINGS
-		(void) bt_mesh_model_data_store(chat->model, true, NULL,
-						&presence,
+
+		if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
+			(void) bt_mesh_model_data_store(chat->model, true,
+						NULL, &presence,
 						sizeof(chat->presence));
-#endif
+		}
 	}
 
-	encode_presence(&buf, chat->presence);
+	encode_presence(chat->model->pub->msg, chat->presence);
 
-	return publish_buf(chat, &buf);
+	return bt_mesh_model_publish(chat->model);
 }
 /* .. include_endpoint_chat_cli_rst_8 */
 
 int bt_mesh_chat_cli_presence_get(struct bt_mesh_chat_cli *chat,
 				  uint16_t addr)
 {
-	struct bt_mesh_msg_ctx ctx = { 0 };
-	struct bt_mesh_model_pub *pub = chat->model->pub;
+	struct bt_mesh_msg_ctx ctx = {
+		.addr = addr,
+		.app_idx = chat->model->keys[0],
+		.send_ttl = BT_MESH_TTL_DEFAULT,
+		.send_rel = true,
+	};
 
 	BT_MESH_MODEL_BUF_DEFINE(buf, BT_MESH_CHAT_CLI_OP_PRESENCE_GET,
 				 BT_MESH_CHAT_CLI_MSG_LEN_PRESENCE_GET);
 	bt_mesh_model_msg_init(&buf, BT_MESH_CHAT_CLI_OP_PRESENCE_GET);
-
-	ctx.addr = addr;
-	ctx.send_ttl = pub->ttl;
-	ctx.send_rel = pub->send_rel;
-	ctx.app_idx = 0;
 
 	return bt_mesh_model_send(chat->model, &ctx, &buf, NULL, NULL);
 }
@@ -293,16 +279,16 @@ int bt_mesh_chat_cli_presence_get(struct bt_mesh_chat_cli *chat,
 int bt_mesh_chat_cli_message_send(struct bt_mesh_chat_cli *chat,
 				  const uint8_t *msg)
 {
-	BT_MESH_MODEL_BUF_DEFINE(buf, BT_MESH_CHAT_CLI_OP_MESSAGE,
-				 BT_MESH_CHAT_CLI_MSG_MAXLEN_MESSAGE);
-	bt_mesh_model_msg_init(&buf, BT_MESH_CHAT_CLI_OP_MESSAGE);
+	struct net_buf_simple *buf = chat->model->pub->msg;
 
-	net_buf_simple_add_mem(&buf, msg,
+	bt_mesh_model_msg_init(buf, BT_MESH_CHAT_CLI_OP_MESSAGE);
+
+	net_buf_simple_add_mem(buf, msg,
 			       strnlen(msg,
 				       CONFIG_BT_MESH_CHAT_CLI_MESSAGE_LENGTH));
-	net_buf_simple_add_u8(&buf, '\0');
+	net_buf_simple_add_u8(buf, '\0');
 
-	return publish_buf(chat, &buf);
+	return bt_mesh_model_publish(chat->model);
 }
 
 /* .. include_startingpoint_chat_cli_rst_9 */
@@ -310,13 +296,12 @@ int bt_mesh_chat_cli_private_message_send(struct bt_mesh_chat_cli *chat,
 					  uint16_t addr,
 					  const uint8_t *msg)
 {
-	struct bt_mesh_msg_ctx ctx = { 0 };
-	struct bt_mesh_model_pub *pub = chat->model->pub;
-
-	ctx.addr = addr;
-	ctx.send_ttl = pub->ttl;
-	ctx.send_rel = pub->send_rel;
-	ctx.app_idx = 0;
+	struct bt_mesh_msg_ctx ctx = {
+		.addr = addr,
+		.app_idx = chat->model->keys[0],
+		.send_ttl = BT_MESH_TTL_DEFAULT,
+		.send_rel = true,
+	};
 
 	BT_MESH_MODEL_BUF_DEFINE(buf, BT_MESH_CHAT_CLI_OP_PRIVATE_MESSAGE,
 				 BT_MESH_CHAT_CLI_MSG_MAXLEN_MESSAGE);

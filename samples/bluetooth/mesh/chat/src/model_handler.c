@@ -75,7 +75,6 @@ struct presence_cache {
 /* Cache of Presence values of other chat clients. */
 static struct presence_cache presence_cache[
 			    CONFIG_BT_MESH_CHAT_SAMPLE_PRESENCE_CACHE_SIZE];
-static size_t presence_cache_head;
 
 static const uint8_t *presence_string[] = {
 	[BT_MESH_CHAT_CLI_PRESENCE_AVAILABLE] = "available",
@@ -85,16 +84,11 @@ static const uint8_t *presence_string[] = {
 };
 
 /**
- * Returns address of an element where the model is instantiated.
- */
-static uint16_t get_model_address(struct bt_mesh_model *mod);
-
-/**
  * Returns true if the specified address is an address of the local element.
  */
 static bool address_is_local(struct bt_mesh_model *mod, uint16_t addr)
 {
-	return get_model_address(mod) == addr;
+	return bt_mesh_model_elem(mod)->addr == addr;
 }
 
 /**
@@ -112,6 +106,7 @@ static bool address_is_unicast(uint16_t addr)
 static bool presence_cache_entry_check_and_update(uint16_t addr,
 				       enum bt_mesh_chat_cli_presence presence)
 {
+	static size_t presence_cache_head;
 	size_t i;
 
 	/* Find address in cache. */
@@ -160,19 +155,21 @@ static void handle_chat_presence(struct bt_mesh_chat_cli *chat,
 				 struct bt_mesh_msg_ctx *ctx,
 				 enum bt_mesh_chat_cli_presence presence)
 {
-	if (address_is_unicast(ctx->recv_dst)) {
-		if (address_is_local(chat->model, ctx->recv_dst)) {
-			shell_print(chat_shell, "---> you are %s",
-				    presence_string[presence]);
-		} else {
-			shell_print(chat_shell, "---> 0x%04X is %s", ctx->addr,
+	if (address_is_local(chat->model, ctx->addr)) {
+		if (address_is_unicast(ctx->recv_dst)) {
+			shell_print(chat_shell, "<you> are %s",
 				    presence_string[presence]);
 		}
-	} else if (!address_is_local(chat->model, ctx->addr)
-			&& presence_cache_entry_check_and_update(ctx->addr,
+	} else {
+		if (address_is_unicast(ctx->recv_dst)) {
+			shell_print(chat_shell, "<0x%04X> is %s", ctx->addr,
+				    presence_string[presence]);
+		} else if (presence_cache_entry_check_and_update(ctx->addr,
 								 presence)) {
-		shell_print(chat_shell, "---> 0x%04X is now %s", ctx->addr,
-			    presence_string[presence]);
+			shell_print(chat_shell, "<0x%04X> is now %s",
+				    ctx->addr,
+				    presence_string[presence]);
+		}
 	}
 }
 
@@ -203,7 +200,7 @@ static void handle_chat_private_message(struct bt_mesh_chat_cli *chat,
 static void handle_chat_message_reply(struct bt_mesh_chat_cli *chat,
 				      struct bt_mesh_msg_ctx *ctx)
 {
-	shell_print(chat_shell, "---> reply received from 0x%04X", ctx->addr);
+	shell_print(chat_shell, "<0x%04X> received the message", ctx->addr);
 }
 
 static const struct bt_mesh_chat_cli_handlers chat_handlers = {
@@ -229,11 +226,6 @@ static struct bt_mesh_elem elements[] = {
 };
 /* .. include_endpoint_model_handler_rst_1 */
 
-static uint16_t get_model_address(struct bt_mesh_model *mod)
-{
-	return elements[mod->elem_idx].addr;
-}
-
 static void print_client_status(void)
 {
 	if (!bt_mesh_is_provisioned()) {
@@ -242,7 +234,7 @@ static void print_client_status(void)
 	} else {
 		shell_print(chat_shell,
 			    "The mesh node is provisioned. The client address is 0x%04x.",
-			    get_model_address(chat.model));
+			    bt_mesh_model_elem(chat.model)->addr);
 	}
 
 	shell_print(chat_shell, "Current presence: %s",
@@ -294,13 +286,7 @@ static int cmd_private_message(const struct shell *shell, size_t argc,
 		return -EINVAL;
 	}
 
-	if (strnlen(argv[1], 6) < 6) {
-		shell_error(chat_shell,
-			    "Incorrect format for node argument. Expected: 0xXXXX.");
-		return -EINVAL;
-	}
-
-	addr = strtol(&argv[1][2], NULL, 16);
+	addr = strtol(argv[1], NULL, 0);
 
 	/* Print own message to the chat. */
 	shell_print(shell, "<you>: *0x%04X* %s", addr, argv[2]);
@@ -335,7 +321,7 @@ static int cmd_presence_set(const struct shell *shell, size_t argc,
 			}
 
 			/* Print own presence in the chat. */
-			shell_print(shell, "---> you are now %s",
+			shell_print(shell, "You are now %s",
 				    presence_string[presence]);
 
 			return 0;
@@ -362,13 +348,7 @@ static int cmd_presence_get(const struct shell *shell, size_t argc,
 		return -EINVAL;
 	}
 
-	if (strnlen(argv[1], 6) < 6) {
-		shell_error(chat_shell,
-			    "Incorrect format for node argument. Expected: 0xXXXX.");
-		return -EINVAL;
-	}
-
-	addr = strtol(&argv[1][2], NULL, 16);
+	addr = strtol(argv[1], NULL, 0);
 
 	err = bt_mesh_chat_cli_presence_get(&chat, addr);
 	if (err) {

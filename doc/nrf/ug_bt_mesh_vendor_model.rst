@@ -10,10 +10,10 @@ Creating a new model
 This user guide describes the basics of creating new models for the Bluetooth Mesh in |NCS|.
 You may implement your own vendor-specific model that will enable your devices to provide custom behavior not covered by the already defined standard models.
 
-This user guide is based on the concepts and principals defined in :ref:`mesh_concepts` and :ref:`Access API <zephyr:bluetooth_mesh_access>`.
+This user guide is based on the concepts and principles defined in :ref:`mesh_concepts` and :ref:`Access API <zephyr:bluetooth_mesh_access>`.
 Therefore, before reading this guide, make sure that you have read and understood them.
 
-In this guide we are going to implement a :ref:`bluetooth_mesh_chat_client_model` model, from the :ref:`bluetooth_mesh_chat` sample.
+In this guide we are going to implement a :ref:`bt_mesh_chat_client_model` model, from the :ref:`bt_mesh_chat` sample.
 
 Overview of the Bluetooth Mesh model development
 ************************************************
@@ -33,37 +33,13 @@ As defined by the `Bluetooth Mesh Profile Specification`_, vendor models identif
     #define YOUR_COMPANY_ID 0x1234
     #define YOUR_MODEL_ID   0x5678
 
-Defining opcodes for the messages
-=================================
+The Company ID must be registered with the Bluetooth SIG, and the vendor owning the Company ID may freely allocate the model IDs for its Company ID.
+See `Bluetooth SIG Company Identifiers`_ for a list of company IDs.
 
-A communication between the nodes within the mesh network is done by means of message exchange.
-Therefore, if you want to implement your own behavior of the node, you need to define your own messages that will be associated with this beahvior.
-To do that, you need to define vendor-specific operation codes for new messages.
+Adding the model to the node composition data
+=============================================
 
-To define vendor-specific opcodes, you can use the :c:macro:`BT_MESH_MODEL_OP_3` macro.
-This macro encodes an opcode into the special format defined by the `Bluetooth Mesh Profile Specification`_.
-Each vendor-specific message must be tied with a Company ID, which is passed as a second parameter to the macro:
-
-.. code-block:: c
-
-    BT_MESH_MODEL_OP_3(0x01, YOUR_COMPANY_ID)
-
-The two most significant bits of the first octet in a vendor-specific opcode are always set to 1.
-Therefore, you can specify up to 64 different vendor-specific opcodes.
-The :c:macro:`BT_MESH_MODEL_OP_3` macro takes care of this for you.
-
-You can wrap your opcode in a macro to make it convenient to use in the future:
-
-.. code-block:: c
-
-    #define MESSAGE_SET_OPCODE    BT_MESH_MODEL_OP_3(0x01, YOUR_COMPANY_ID)
-    #define MESSAGE_ACK_OPCODE    BT_MESH_MODEL_OP_3(0x02, YOUR_COMPANY_ID)
-    #define MESSAGE_STATUS_OPCODE BT_MESH_MODEL_OP_3(0x03, YOUR_COMPANY_ID)
-
-Adding the model to a node composition data
-===========================================
-
-Once your model has its own Model ID, it can be added to a node composition data.
+Once your model has its own Model ID, it can be added to the node composition data.
 This will register the model on the node and enable the model configuration through the :ref:`zephyr:bluetooth_mesh_models_cfg_cli` so that it can communicate with the other models in the network.
 Note that the node composition data is passed to :c:func:`bt_mesh_init` at the mesh stack initialization,
 therefore it can not be changed at run-time.
@@ -102,6 +78,33 @@ Note that vendor models are passed in the second parameter of :c:macro:`BT_MESH_
                                                     NULL))
         ),
     };
+
+Defining opcodes for the messages
+=================================
+
+A communication between the nodes within the mesh network is done by means of message exchange.
+Therefore, if you want to implement your own behavior of the node, you need to define your own messages that will be associated with this beahvior.
+To do that, you need to define vendor-specific operation codes for new messages.
+
+To define vendor-specific opcodes, you can use the :c:macro:`BT_MESH_MODEL_OP_3` macro.
+This macro encodes an opcode into the special format defined by the `Bluetooth Mesh Profile Specification`_.
+Each vendor-specific message must be tied with a Company ID, which is passed as a second parameter to the macro:
+
+.. code-block:: c
+
+    BT_MESH_MODEL_OP_3(0x01, YOUR_COMPANY_ID)
+
+The two most significant bits of the first octet in a vendor-specific opcode are always set to 1.
+Therefore, you can specify up to 64 different vendor-specific opcodes.
+The :c:macro:`BT_MESH_MODEL_OP_3` macro takes care of this for you.
+
+You can wrap your opcode in a macro to make it convenient to use in the future:
+
+.. code-block:: c
+
+    #define MESSAGE_SET_OPCODE    BT_MESH_MODEL_OP_3(0x01, YOUR_COMPANY_ID)
+    #define MESSAGE_ACK_OPCODE    BT_MESH_MODEL_OP_3(0x02, YOUR_COMPANY_ID)
+    #define MESSAGE_STATUS_OPCODE BT_MESH_MODEL_OP_3(0x03, YOUR_COMPANY_ID)
 
 Receiving messages
 ==================
@@ -147,7 +150,16 @@ Note that the last element in the opcode list is always :c:macro:`BT_MESH_MODEL_
     };
 
 To associate the opcode list with your model, use :c:macro:`BT_MESH_MODEL_VND_CB`.
-It will initialize the :c:member:`bt_mesh_model.op` field of the model context.
+It will initialize the :c:member:`bt_mesh_model.op` field of the model context:
+
+.. code-block:: c
+
+    BT_MESH_MODEL_VND_CB(YOUR_COMPANY_ID,
+                         YOUR_MODEL_ID,
+                         _opcode_list,
+                         NULL,
+                         NULL,
+                         NULL)
 
 Sending messages
 ================
@@ -178,20 +190,21 @@ you can initialize :c:struct:`bt_mesh_msg_ctx` with a custom parameters and pass
 
     static int send_message(struct bt_mesh_model *model, uint16_t addr)
     {
-        struct bt_mesh_msg_ctx ctx = { 0 };
+        struct bt_mesh_msg_ctx ctx = {
+                .addr = addr,
+                .app_idx = model->keys[0],
+                .send_ttl = BT_MESH_TTL_DEFAULT,
+        };
 
         BT_MESH_MODEL_BUF_DEFINE(buf, MESSAGE_SET_OPCODE, MESSAGE_SET_LEN);
         bt_mesh_model_msg_init(&buf, MESSAGE_SET_OPCODE);
 
         // Fill the message buffer here
 
-        ctx.addr = addr;
-        ctx.send_ttl = model->pub->ttl;
-        ctx.send_rel = model->pub->send_rel;
-        ctx.app_idx = 0;
-
         return bt_mesh_model_send(model, &ctx, &buf, NULL, NULL);
     }
+
+Note that in this case, you still need to bind an application key to your model using the Configuration Client before sending messages.
 
 The :c:func:`bt_mesh_model_send` function is also used if you need to send a reply on a received message.
 To do that, use the message context passed to a handler of a message needs to be replied to, when calling :c:func:`bt_mesh_model_send`:
@@ -210,8 +223,20 @@ To do that, use the message context passed to a handler of a message needs to be
         (void) bt_mesh_model_send(model, ctx, &reply, NULL, NULL);
     }
 
-The model publication context defines behavior of messages to be published by the model and is configured by a Configuration Client.
-If you want your model to send messages using the model publication context, create :c:struct:`bt_mesh_model_pub` instance and pass it to :c:macro:`BT_MESH_MODEL_VND_CB` to initialize :c:member:`bt_mesh_model.pub`.
+The model publication context defines behavior of messages to be published by the model and is configured by the Configuration Client.
+If you want your model to send messages using the model publication context, create :c:struct:`bt_mesh_model_pub` instance and pass it to :c:macro:`BT_MESH_MODEL_VND_CB` to initialize :c:member:`bt_mesh_model.pub`:
+
+.. code-block:: c
+
+    static struct bt_mesh_model_pub pub_ctx;
+
+    BT_MESH_MODEL_VND_CB(YOUR_COMPANY_ID,
+                         YOUR_MODEL_ID,
+                         _opcode_list,
+                         &pub_ctx,
+                         NULL,
+                         NULL)
+
 You must initialize :c:member:`bt_mesh_model_pub.msg` publication buffer.
 This can be done in two ways.
 By using the :c:macro:`NET_BUF_SIMPLE` macro:
@@ -303,29 +328,40 @@ These callbacks are defined in :c:struct:`bt_mesh_model_cb`:
 
 If you want to use any of these callbacks, create an instance of :c:struct:`bt_mesh_model_cb` and initialize any of the required callbacks.
 Use :c:macro:`BT_MESH_MODEL_VND_CB` to associate the callbacks with your model.
-It will initialize :c:member:`bt_mesh_model.cb` field of the model context.
+It will initialize :c:member:`bt_mesh_model.cb` field of the model context:
 
-Getting all things together
+.. code-block:: c
+
+    static struct bt_mesh_model_cb model_cbs;
+
+    BT_MESH_MODEL_VND_CB(YOUR_COMPANY_ID,
+                         YOUR_MODEL_ID,
+                         _opcode_list,
+                         &pub_ctx,
+                         NULL,
+                         &model_cbs)
+
+Putting everything together
 ***************************
 
-Now, after covering the basics of the model implementation, we can see how it works on the example of :ref:`bluetooth_mesh_chat` sample.
-It implements a vendor model that is called the :ref:`bluetooth_mesh_chat_client_model`.
+Now, after covering the basics of the model implementation, we can see how it works on the example of :ref:`bt_mesh_chat` sample.
+It implements a vendor model that is called the :ref:`bt_mesh_chat_client_model`.
 
-In the code below, you can see how Company ID, Model ID and messages opcodes for the :ref:`messages <bluetooth_mesh_chat_client_model_messages>` defined in the Chat Client model:
+In the code below, you can see how Company ID, Model ID and messages opcodes for the :ref:`messages <bt_mesh_chat_client_model_messages>` defined in the Chat Client model:
 
 .. literalinclude:: ../../samples/bluetooth/mesh/chat/include/chat_cli.h
    :language: c
    :start-after: include_startingpoint_chat_cli_rst_1
    :end-before: include_endpoint_chat_cli_rst_1
 
-The next snippet shows the opcode list for the messages defined in the :ref:`bluetooth_mesh_chat_client_model_messages`:
+The next snippet shows declaration of the opcode list:
 
 .. literalinclude:: ../../samples/bluetooth/mesh/chat/src/chat_cli.c
    :language: c
    :start-after: include_startingpoint_chat_cli_rst_2
    :end-before: include_endpoint_chat_cli_rst_2
 
-To send :ref:`presence <bluetooth_mesh_chat_client_model_presence>` and non-private messages, the Chat Client model uses the model publication context.
+To send :ref:`presence <bt_mesh_chat_client_model_states>` and non-private messages, the Chat Client model uses the model publication context.
 This will let the Configuration Client configure an address where the messages will be published to.
 Therefore, the model needs to declare :c:struct:`bt_mesh_model_pub`, :c:struct:`net_buf_simple` and a buffer for a message to be published.
 In addition to that, the model needs to store a pointer to :c:struct:`bt_mesh_model`, to use the Access API.
@@ -376,7 +412,7 @@ This is done through the :c:member:`bt_mesh_model_cb.reset` handler:
    :start-after: include_startingpoint_chat_cli_rst_6
    :end-before: include_endpoint_chat_cli_rst_6
 
-Note that both callbacks as well as :c:func:`bt_mesh_model_data_store` call are wrapped into :option:`CONFIG_BT_SETTINGS`.
+Note that the :c:member:`bt_mesh_model_cb.settings_set` handle and both :c:func:`bt_mesh_model_data_store` calls are only compiled if :option:`CONFIG_BT_SETTINGS` is enabled.
 This let's exclude this functionality if the persistent storage is not enabled.
 
 Here you can see initialization of the model callbacks structure:
@@ -412,6 +448,8 @@ This is done by initializing :c:struct:`bt_mesh_msg_ctx` with a custom parameter
    :language: c
    :start-after: include_startingpoint_chat_cli_rst_9
    :end-before: include_endpoint_chat_cli_rst_9
+
+Note that it also sets :c:member:`bt_mesh_msg_ctx.send_rel` to ensure that the message is delivered to the destination.
 
 When the Chat Client model receives a private text message or some of the nodes wants to get the current presence of the model, it needs to send an acknowledgment back to the originator of the message.
 This is done by calling :c:func:`bt_mesh_model_send` with the :c:struct:`bt_mesh_msg_ctx` passed to the message handler:

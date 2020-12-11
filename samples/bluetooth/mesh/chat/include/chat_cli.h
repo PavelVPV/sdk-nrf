@@ -208,8 +208,10 @@ int bt_mesh_chat_cli_private_message_send(struct bt_mesh_chat_cli *chat,
 					  uint16_t addr,
 					  const uint8_t *msg);
 
+/** @cond INTERNAL_HIDDEN */
 extern const struct bt_mesh_model_op _bt_mesh_chat_cli_op[];
 extern const struct bt_mesh_model_cb _bt_mesh_chat_cli_cb;
+/** @endcond */
 
 #ifdef __cplusplus
 }

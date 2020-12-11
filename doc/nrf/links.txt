@@ -322,6 +322,8 @@
 
 .. _`Bond Management Service Specification`: https://www.bluetooth.org/docman/handlers/downloaddoc.ashx?doc_id=293524
 
+.. _`Bluetooth SIG Company Identifiers`: https://www.bluetooth.com/specifications/assigned-numbers/company-identifiers/
+
 .. ### Links to Bluetooth Mesh
 
 .. _`Mesh Model Specification`:
