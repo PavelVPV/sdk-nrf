@@ -1,0 +1,103 @@
+#
+# Copyright (c) 2020 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "!!! Models test app !!!"
+
+config APP_SCENE
+	bool "Scene models"
+	default y
+
+config APP_GEN_ONOFF_SRV
+	bool "Generic OnOff server"
+	default n
+
+config APP_GEN_ONOFF_CLI
+	bool "Generic OnOff client"
+	default n
+
+config APP_GEN_LVL_SRV
+	bool "Generic Level server"
+	default n
+
+config APP_GEN_LVL_CLI
+	bool "Generic Level client"
+	default n
+
+config APP_GEN_PONOFF_SRV
+	bool "Generic Power OnOff server"
+	default n
+
+config APP_GEN_PONOFF_CLI
+	bool "Generic Power OnOff client"
+	default n
+
+config APP_GEN_PLVL_SRV
+	bool "Generic Power Level server"
+	default n
+
+config APP_GEN_PLVL_CLI
+	bool "Generic Power Level client"
+	default n
+
+config APP_LIGHT_LIGHTNESS_SRV
+	bool "Light Lightness server"
+	default n
+
+config APP_LIGHT_LIGHTNESS_CLI
+	bool "Light Lightness client"
+	default n
+
+config APP_LIGHT_LC_SRV
+	bool "Light LC server"
+	default n
+
+config APP_LIGHT_LC_CLI
+	bool "Light LC client"
+	default n
+
+config APP_LIGHT_CTL_SRV
+	bool "Light CTL server"
+	default n
+
+config APP_LIGHT_CTL_CLI
+	bool "Light CTL client"
+	default n
+
+config APP_LIGHT_TEMP_SRV
+	bool "Light Temperature server"
+	default n
+
+config APP_LIGHT_HSL_SRV
+	bool "Light HSL server"
+	default n
+
+config APP_LIGHT_HSL_CLI
+	bool "Light HSL client"
+	default n
+
+config APP_LIGHT_XYL_SRV
+	bool "Light xyL server"
+	default n
+
+config APP_LIGHT_XYL_CLI
+	bool "Light xyL client"
+	default n
+
+config APP_SENSOR_CLI
+	bool "Sensor client"
+	default n
+
+config APP_SENSOR_SRV
+	bool "Sensor server"
+	default n
+
+endmenu
+
+source "Kconfig.zephyr"
+
+module = BT_MESH_MODELS_TEST
+module-str = BT Mesh Models test
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
