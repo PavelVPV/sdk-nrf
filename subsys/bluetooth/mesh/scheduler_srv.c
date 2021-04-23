@@ -683,18 +683,16 @@ static int scheduler_srv_init(struct bt_mesh_model *model)
 	srv->status_bitmap = 0;
 	memset(&srv->sch_reg, 0, sizeof(srv->sch_reg));
 
-	if (IS_ENABLED(CONFIG_BT_MESH_MODEL_EXTENSIONS)) {
-		/* Model extensions:
-		 * To simplify the model extension tree, we're flipping the
-		 * relationship between the scheduler server and the scheduler
-		 * setup server. In the specification, the scheduler setup
-		 * server extends the scheduler server, which is the opposite
-		 * of what we're doing here. This makes no difference for
-		 * the mesh stack, but it makes it a lot easier to extend
-		 * this model, as we won't have to support multiple extenders.
-		 */
-		bt_mesh_model_extend(model, srv->setup_mod);
-	}
+	/* Model extensions:
+	 * To simplify the model extension tree, we're flipping the
+	 * relationship between the scheduler server and the scheduler
+	 * setup server. In the specification, the scheduler setup
+	 * server extends the scheduler server, which is the opposite
+	 * of what we're doing here. This makes no difference for
+	 * the mesh stack, but it makes it a lot easier to extend
+	 * this model, as we won't have to support multiple extenders.
+	 */
+	bt_mesh_model_extend(model, srv->setup_mod);
 
 	srv->idx = BT_MESH_SCHEDULER_ACTION_ENTRY_COUNT;
 	srv->status_bitmap = 0;
