@@ -37,6 +37,17 @@ config BT_MESH_ONOFF_SRV
 	help
 	  Enable mesh Generic OnOff Server model.
 
+if BT_MESH_ONOFF_SRV
+
+config BT_MESH_ONOFF_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
+endif
+
 config BT_MESH_ONOFF_CLI
 	bool "Generic OnOff Client"
 	select BT_MESH_NRF_MODELS
@@ -99,6 +110,13 @@ config BT_MESH_LVL_SRV
 	help
 	  Enable mesh Generic Level Server model.
 
+config BT_MESH_LVL_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
 config BT_MESH_LVL_CLI
 	bool "Generic Level Client"
 	select BT_MESH_NRF_MODELS
@@ -139,6 +157,17 @@ config BT_MESH_PONOFF_SRV
 	help
 	  Enable mesh Generic Power OnOff Server model.
 
+if BT_MESH_PONOFF_SRV
+
+config BT_MESH_PONOFF_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
+endif
+
 config BT_MESH_PONOFF_CLI
 	bool "Generic Power OnOff Client"
 	select BT_MESH_NRF_MODELS
@@ -154,6 +183,17 @@ config BT_MESH_PLVL_SRV
 	select BT_MESH_MODEL_EXTENSIONS
 	help
 	  Enable mesh Generic Power Level Server model.
+
+if BT_MESH_PLVL_SRV
+
+config BT_MESH_PLVL_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
+endif
 
 config BT_MESH_PLVL_CLI
 	bool "Generic Power Level Client"
@@ -235,6 +275,17 @@ config BT_MESH_LIGHTNESS_SRV
 	help
 	  Enable mesh Light Lightness Server model.
 
+if BT_MESH_LIGHTNESS_SRV
+
+config BT_MESH_LIGHTNESS_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
+endif
+
 config BT_MESH_LIGHTNESS_CLI
 	bool "Light Lightness Client"
 	select BT_MESH_NRF_MODELS
@@ -273,6 +324,13 @@ menuconfig BT_MESH_LIGHT_CTRL_SRV
 	  Enable mesh Light Lightness Control Server model.
 
 if BT_MESH_LIGHT_CTRL_SRV
+
+config BT_MESH_LIGHT_CTRL_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
 
 menuconfig BT_MESH_LIGHT_CTRL_SRV_REG
 	bool "Lightness Regulator"
@@ -515,6 +573,18 @@ config BT_MESH_LIGHT_CTL_SRV
 	help
 	  Enable mesh Light CTL Server model.
 
+if BT_MESH_LIGHT_CTL_SRV
+
+config BT_MESH_LIGHT_CTL_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	select BT_MESH_LIGHT_TEMP_SRV_STORED_WITH_SCENE
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
+endif
+
 config BT_MESH_LIGHT_TEMP_SRV
 	bool "Color Tunable Light (CTL) Temperature Server"
 	select BT_MESH_NRF_MODELS
@@ -522,6 +592,17 @@ config BT_MESH_LIGHT_TEMP_SRV
 	select BT_MESH_MODEL_EXTENSIONS
 	help
 	  Enable mesh Light CTL Temperature Server model.
+
+if BT_MESH_LIGHT_TEMP_SRV
+
+config BT_MESH_LIGHT_TEMP_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
+endif
 
 config BT_MESH_LIGHT_XYL_CLI
 	bool "xyL Client"
@@ -536,6 +617,17 @@ config BT_MESH_LIGHT_XYL_SRV
 	select BT_MESH_MODEL_EXTENSIONS
 	help
 	  Enable Mesh Light xyL Server model.
+
+if BT_MESH_LIGHT_XYL_SRV
+
+config BT_MESH_LIGHT_XYL_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
+endif
 
 config BT_MESH_LIGHT_HSL
 	bool # Hidden entry
@@ -557,6 +649,17 @@ config BT_MESH_LIGHT_HSL_SRV
 	select BT_MESH_MODEL_EXTENSIONS
 	help
 	  Enable Mesh Light HSL Server model.
+
+if BT_MESH_LIGHT_HSL_SRV
+
+config BT_MESH_LIGHT_HSL_SRV_STORED_WITH_SCENE
+	bool "Store with scene"
+	help
+	  If enabled, the code that is responsible for storing and recalling
+	  state with scene will be compiled. If model is extended, this code
+	  won't be used.
+
+endif
 
 config BT_MESH_LIGHT_SAT_SRV
 	bool "Light Saturation Server"

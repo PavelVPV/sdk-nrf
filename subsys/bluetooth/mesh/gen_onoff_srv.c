@@ -190,7 +190,8 @@ static int bt_mesh_onoff_srv_init(struct bt_mesh_model *model)
 	net_buf_simple_init_with_data(&srv->pub_buf, srv->pub_data,
 				      sizeof(srv->pub_data));
 
-	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
+	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV) &&
+	    IS_ENABLED(CONFIG_BT_MESH_ONOFF_SRV_STORED_WITH_SCENE)) {
 		bt_mesh_scene_entry_add(model, &srv->scene, &scene_type, false);
 	}
 

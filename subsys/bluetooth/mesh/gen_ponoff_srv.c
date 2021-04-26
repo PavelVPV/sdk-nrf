@@ -267,7 +267,8 @@ static int bt_mesh_ponoff_srv_init(struct bt_mesh_model *model)
 			bt_mesh_model_elem(model),
 			BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SETUP_SRV));
 
-	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
+	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV) &&
+	    IS_ENABLED(CONFIG_BT_MESH_PONOFF_SRV_STORED_WITH_SCENE)) {
 		bt_mesh_scene_entry_add(model, &srv->scene, &scene_type, false);
 	}
 

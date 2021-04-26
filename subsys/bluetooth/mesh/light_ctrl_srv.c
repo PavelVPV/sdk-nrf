@@ -1494,7 +1494,8 @@ static int light_ctrl_srv_init(struct bt_mesh_model *model)
 
 	atomic_set_bit(&srv->onoff.flags, GEN_ONOFF_SRV_NO_DTT);
 
-	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
+	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV) &&
+	    IS_ENABLED(CONFIG_BT_MESH_LIGHT_CTRL_SRV_STORED_WITH_SCENE)) {
 		bt_mesh_scene_entry_add(model, &srv->scene, &scene_type, false);
 	}
 

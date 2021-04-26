@@ -363,7 +363,8 @@ static int bt_mesh_light_temp_srv_init(struct bt_mesh_model *model)
 
 	bt_mesh_model_extend(model, srv->lvl.model);
 
-	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
+	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV) &&
+	    IS_ENABLED(CONFIG_BT_MESH_LIGHT_TEMP_SRV_STORED_WITH_SCENE)) {
 		bt_mesh_scene_entry_add(model, &srv->scene, &scene_type, false);
 	}
 
