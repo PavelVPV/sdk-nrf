@@ -46,6 +46,18 @@ struct bt_mesh_scene_srv;
 						 _srv),                        \
 			 &_bt_mesh_scene_setup_srv_cb)
 
+#ifdef CONFIG_BT_MESH_SCENE_SRV
+/** @def BT_MESH_SCENE_ENTRY
+ *
+ * @brief Scene entry initialization macro.
+ *
+ * @param[in] _type Pointer to a @ref bt_mesh_scene_entry_type instance.
+ */
+#define BT_MESH_SCENE_ENTRY(_type) (struct bt_mesh_scene_entry){ .type = _type }
+#else
+#define BT_MESH_SCENE_ENTRY(_type) NULL
+#endif
+
 /** Scene Server model instance */
 struct bt_mesh_scene_srv {
 	/** All known scenes. */

@@ -491,7 +491,7 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 	(void)bt_mesh_light_hsl_srv_pub(srv, NULL, &hsl);
 }
 
-static const struct bt_mesh_scene_entry_type scene_type = {
+const struct bt_mesh_scene_entry_type _bt_mesh_light_hsl_scene_type = {
 	.maxlen = sizeof(struct scene_data),
 	.store = scene_store,
 	.recall = scene_recall,
@@ -536,8 +536,8 @@ static int bt_mesh_light_hsl_srv_init(struct bt_mesh_model *model)
 			       bt_mesh_model_elem(model),
 			       BT_MESH_MODEL_ID_LIGHT_HSL_SETUP_SRV));
 
-	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_entry_add(model, &srv->scene, &scene_type, false);
+	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV) && srv->scene.type != NULL) {
+		bt_mesh_scene_entry_add(model, &srv->scene, srv->scene.type, false);
 	}
 
 	return 0;

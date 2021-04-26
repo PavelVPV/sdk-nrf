@@ -35,10 +35,16 @@ struct bt_mesh_plvl_srv;
  */
 #define BT_MESH_PLVL_SRV_INIT(_handlers)                                       \
 	{                                                                      \
-		.lvl = BT_MESH_LVL_SRV_INIT(&bt_mesh_plvl_srv_lvl_handlers),   \
-		.ponoff = BT_MESH_PONOFF_SRV_INIT(                             \
-			&bt_mesh_plvl_srv_onoff_handlers, NULL, NULL),         \
+		.lvl = {                                                       \
+			.handlers = &bt_mesh_plvl_srv_lvl_handlers,            \
+		},                                                             \
+		.ponoff = {                                                    \
+			.onoff = {                                             \
+				.handlers = &_bt_mesh_ponoff_onoff_intercept,  \
+			},                                                     \
+		},                                                             \
 		.handlers = _handlers,                                         \
+		.scene = BT_MESH_SCENE_ENTRY(&_bt_mesh_plvl_srv_scene_type),   \
 	}
 
 /** @def BT_MESH_MODEL_PLVL_SRV
@@ -192,6 +198,7 @@ extern const struct bt_mesh_model_op _bt_mesh_plvl_srv_op[];
 extern const struct bt_mesh_model_op _bt_mesh_plvl_setup_srv_op[];
 extern const struct bt_mesh_lvl_srv_handlers bt_mesh_plvl_srv_lvl_handlers;
 extern const struct bt_mesh_onoff_srv_handlers bt_mesh_plvl_srv_onoff_handlers;
+extern const struct bt_mesh_scene_entry_type _bt_mesh_plvl_srv_scene_type;
 /** @endcond */
 
 #ifdef __cplusplus

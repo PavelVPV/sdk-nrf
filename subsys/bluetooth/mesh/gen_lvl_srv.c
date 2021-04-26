@@ -277,7 +277,7 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 	(void)bt_mesh_lvl_srv_pub(srv, NULL, &status);
 }
 
-static const struct bt_mesh_scene_entry_type scene_type = {
+const struct bt_mesh_scene_entry_type _bt_mesh_lvl_srv_scene_type = {
 	.maxlen = 2,
 	.store = scene_store,
 	.recall = scene_recall,
@@ -304,8 +304,8 @@ static int bt_mesh_lvl_srv_init(struct bt_mesh_model *model)
 	net_buf_simple_init_with_data(&srv->pub_buf, srv->pub_data,
 				      sizeof(srv->pub_data));
 
-	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_entry_add(model, &srv->scene, &scene_type, false);
+	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV) && srv->scene.type != NULL) {
+		bt_mesh_scene_entry_add(model, &srv->scene, srv->scene.type, false);
 	}
 
 	return 0;

@@ -34,9 +34,21 @@ struct bt_mesh_light_ctl_srv;
  */
 #define BT_MESH_LIGHT_CTL_SRV_INIT(_lightness_handlers, _light_temp_handlers)  \
 	{                                                                      \
-		.lightness_srv =                                               \
-			BT_MESH_LIGHTNESS_SRV_INIT(_lightness_handlers),       \
+		.lightness_srv = {                                             \
+			.lvl = {                                               \
+				.handlers =                                    \
+					&_bt_mesh_lightness_srv_lvl_handlers,  \
+			},                                                     \
+			.ponoff = {                                            \
+				.onoff = {                                     \
+					.handlers =                            \
+					      &_bt_mesh_ponoff_onoff_intercept,\
+				},                                             \
+			},                                                     \
+			.handlers = _lightness_handlers,                       \
+		},                                                             \
 		.temp_srv = BT_MESH_LIGHT_TEMP_SRV_INIT(_light_temp_handlers), \
+		.scene = BT_MESH_SCENE_ENTRY(&_bt_mesh_light_ctl_scene_type),  \
 	}
 
 /** @def BT_MESH_MODEL_LIGHT_CTL_SRV
@@ -150,6 +162,7 @@ int bt_mesh_light_ctl_default_pub(struct bt_mesh_light_ctl_srv *srv,
 extern const struct bt_mesh_model_op _bt_mesh_light_ctl_srv_op[];
 extern const struct bt_mesh_model_op _bt_mesh_light_ctl_setup_srv_op[];
 extern const struct bt_mesh_model_cb _bt_mesh_light_ctl_srv_cb;
+extern const struct bt_mesh_scene_entry_type _bt_mesh_light_ctl_scene_type;
 /** @endcond */
 
 #ifdef __cplusplus

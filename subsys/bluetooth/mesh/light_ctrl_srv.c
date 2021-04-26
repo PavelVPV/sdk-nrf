@@ -1448,7 +1448,7 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 	}
 }
 
-static const struct bt_mesh_scene_entry_type scene_type = {
+const struct bt_mesh_scene_entry_type _bt_mesh_light_ctrl_scene_type = {
 	.maxlen = sizeof(struct scene_data),
 	.store = scene_store,
 	.recall = scene_recall,
@@ -1505,8 +1505,8 @@ static int light_ctrl_srv_init(struct bt_mesh_model *model)
 
 	atomic_set_bit(&srv->onoff.flags, GEN_ONOFF_SRV_NO_DTT);
 
-	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_entry_add(model, &srv->scene, &scene_type, false);
+	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV) && srv->scene.type != NULL) {
+		bt_mesh_scene_entry_add(model, &srv->scene, srv->scene.type, false);
 	}
 
 	return 0;

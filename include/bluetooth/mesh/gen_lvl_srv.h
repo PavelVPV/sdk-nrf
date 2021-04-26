@@ -33,6 +33,7 @@ struct bt_mesh_lvl_srv;
 #define BT_MESH_LVL_SRV_INIT(_handlers)                                        \
 	{                                                                      \
 		.handlers = _handlers,                                         \
+		.scene = BT_MESH_SCENE_ENTRY(&_bt_mesh_lvl_srv_scene_type),    \
 	}
 
 /** @def BT_MESH_MODEL_LVL_SRV
@@ -171,6 +172,7 @@ int bt_mesh_lvl_srv_pub(struct bt_mesh_lvl_srv *srv,
 /** @cond INTERNAL_HIDDEN */
 extern const struct bt_mesh_model_op _bt_mesh_lvl_srv_op[];
 extern const struct bt_mesh_model_cb _bt_mesh_lvl_srv_cb;
+extern const struct bt_mesh_scene_entry_type _bt_mesh_lvl_srv_scene_type;
 /** @endcond */
 
 #ifdef __cplusplus
