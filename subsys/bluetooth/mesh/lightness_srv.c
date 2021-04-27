@@ -800,7 +800,9 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 		.transition = transition,
 	};
 
-	lightness_srv_change_lvl(srv, NULL, &set, &dummy_status);
+	if (atomic_test_bit(&srv->flags, LIGHTNESS_SRV_FLAG_EXTENDED_BY_LIGHT_CTRL)) {
+		lightness_srv_change_lvl(srv, NULL, &set, &dummy_status);
+	}
 }
 
 const struct bt_mesh_scene_entry_type _bt_mesh_lightness_scene_type = {

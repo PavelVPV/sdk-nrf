@@ -48,7 +48,6 @@ struct bt_mesh_light_ctl_srv;
 			.handlers = _lightness_handlers,                       \
 		},                                                             \
 		.temp_srv = BT_MESH_LIGHT_TEMP_SRV_INIT(_light_temp_handlers), \
-		.scene = BT_MESH_SCENE_ENTRY(&_bt_mesh_light_ctl_scene_type),  \
 	}
 
 /** @def BT_MESH_MODEL_LIGHT_CTL_SRV
@@ -90,8 +89,6 @@ struct bt_mesh_light_ctl_srv {
 		BT_MESH_LIGHT_CTL_STATUS, BT_MESH_LIGHT_CTL_MSG_MAXLEN_STATUS)];
 	/** Transaction ID tracker for the set messages. */
 	struct bt_mesh_tid_ctx prev_transaction;
-	/* Scene entry */
-	struct bt_mesh_scene_entry scene;
 };
 
 /** @brief Publish the current CTL status.

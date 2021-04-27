@@ -426,7 +426,6 @@ const struct bt_mesh_model_op _bt_mesh_light_hsl_setup_srv_op[] = {
 struct __packed scene_data {
 	uint16_t h;
 	uint16_t s;
-	uint16_t l;
 };
 
 static ssize_t scene_store(struct bt_mesh_model *model, uint8_t data[])
@@ -434,21 +433,17 @@ static ssize_t scene_store(struct bt_mesh_model *model, uint8_t data[])
 	struct bt_mesh_light_hsl_srv *srv = model->user_data;
 	struct bt_mesh_light_hue_status hue = { 0 };
 	struct bt_mesh_light_sat_status sat = { 0 };
-	struct bt_mesh_lightness_status light = { 0 };
 	struct scene_data *scene = (struct scene_data *)&data[0];
 
 	srv->hue.handlers->get(&srv->hue, NULL, &hue);
 	srv->sat.handlers->get(&srv->sat, NULL, &sat);
-	srv->lightness.handlers->light_get(&srv->lightness, NULL, &light);
 
-	if (hue.remaining_time || sat.remaining_time || light.remaining_time) {
+	if (hue.remaining_time || sat.remaining_time) {
 		scene->h = hue.target;
 		scene->s = sat.target;
-		scene->l = repr_to_light(light.target, ACTUAL);
 	} else {
 		scene->h = hue.current;
 		scene->s = sat.current;
-		scene->l = light.current;
 	}
 
 	return sizeof(struct scene_data);
@@ -463,10 +458,6 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 	struct bt_mesh_lightness_status light_status = { 0 };
 	struct bt_mesh_light_hue_status hue_status = { 0 };
 	struct bt_mesh_light_sat_status sat_status = { 0 };
-	struct bt_mesh_lightness_set light_set = {
-		.lvl = repr_to_light(scene->l, ACTUAL),
-		.transition = transition,
-	};
 	struct bt_mesh_light_hue hue_set = {
 		.lvl = scene->h,
 		.transition = transition,
@@ -479,11 +470,7 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 	bt_mesh_light_hue_srv_set(&srv->hue, NULL, &hue_set, &hue_status);
 	bt_mesh_light_sat_srv_set(&srv->sat, NULL, &sat_set, &sat_status);
 
-	if (!atomic_test_bit(&srv->lightness.flags, LIGHTNESS_SRV_FLAG_EXTENDED_BY_LIGHT_CTRL)) {
-		lightness_srv_change_lvl(&srv->lightness, NULL, &light_set, &light_status);
-	} else {
-		srv->lightness.handlers->light_get(&srv->lightness, NULL, &light_status);
-	}
+	srv->lightness.handlers->light_get(&srv->lightness, NULL, &light_status);
 
 	struct bt_mesh_light_hsl_status hsl =
 		HSL_STATUS_INIT(&hue_status, &sat_status, &light_status, current);

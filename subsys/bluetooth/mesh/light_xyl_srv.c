@@ -422,32 +422,26 @@ const struct bt_mesh_model_op _bt_mesh_light_xyl_setup_srv_op[] = {
 };
 
 struct __packed scene_data {
-	struct bt_mesh_light_xy xy;
-	uint16_t light;
+	/** xyL x value */
+	uint16_t x;
+	/** xyL y value */
+	uint16_t y;
 };
 
 static ssize_t scene_store(struct bt_mesh_model *model, uint8_t data[])
 {
 	struct bt_mesh_light_xyl_srv *srv = model->user_data;
 	struct bt_mesh_light_xy_status xy_rsp = { 0 };
-	struct bt_mesh_lightness_status light = { 0 };
 	struct scene_data *scene = (struct scene_data *)&data[0];
 
-	srv->lightness_srv.handlers->light_get(&srv->lightness_srv, NULL, &light);
 	srv->handlers->xy_get(srv, NULL, &xy_rsp);
 
 	if (xy_rsp.remaining_time) {
-		scene->xy.x = xy_rsp.target.x;
-		scene->xy.y = xy_rsp.target.y;
+		scene->x = xy_rsp.target.x;
+		scene->y = xy_rsp.target.y;
 	} else {
-		scene->xy.x = xy_rsp.current.x;
-		scene->xy.y = xy_rsp.current.y;
-	}
-
-	if (light.remaining_time) {
-		scene->light = repr_to_light(light.target, ACTUAL);
-	} else {
-		scene->light = repr_to_light(light.current, ACTUAL);
+		scene->x = xy_rsp.current.x;
+		scene->y = xy_rsp.current.y;
 	}
 
 	return sizeof(struct scene_data);
@@ -461,24 +455,15 @@ static void scene_recall(struct bt_mesh_model *model, const uint8_t data[],
 	struct scene_data *scene = (struct scene_data *)&data[0];
 	struct bt_mesh_light_xyl_status xyl_status = { 0 };
 	struct bt_mesh_lightness_status light_status = { 0 };
-	struct bt_mesh_lightness_set light = {
-		.lvl = scene->light,
-		.transition = transition,
-	};
 	struct bt_mesh_light_xy_status xy_status;
 	struct bt_mesh_light_xy_set xy_set = {
-		.params.x = scene->xy.x,
-		.params.y = scene->xy.y,
+		.params.x = scene->x,
+		.params.y = scene->y,
 		.transition = transition,
 	};
 
 	srv->handlers->xy_set(srv, NULL, &xy_set, &xy_status);
-	if (!atomic_test_bit(&srv->lightness_srv.flags,
-			     LIGHTNESS_SRV_FLAG_EXTENDED_BY_LIGHT_CTRL)) {
-		lightness_srv_change_lvl(&srv->lightness_srv, NULL, &light, &light_status);
-	} else {
-		srv->lightness_srv.handlers->light_get(&srv->lightness_srv, NULL, &light_status);
-	}
+	srv->lightness_srv.handlers->light_get(&srv->lightness_srv, NULL, &light_status);
 
 	srv->xy_last.x = xy_set.params.x;
 	srv->xy_last.y = xy_set.params.y;

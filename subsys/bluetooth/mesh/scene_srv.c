@@ -243,7 +243,8 @@ static void entry_recover(struct bt_mesh_scene_srv *srv, bool vnd,
 		 * If a model is extending another model, the extending model shall determine
 		 * the Stored with Scene behavior of that model.
 		 */
-		if (bt_mesh_model_is_extended(entry->model)) {
+		if (bt_mesh_model_is_extended(entry->model) &&
+		    (vnd || entry->model->id != BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV)) {
 			continue;
 		}
 
@@ -366,7 +367,8 @@ static enum bt_mesh_scene_status scene_store(struct bt_mesh_scene_srv *srv,
 		 * If a model is extending another model, the extending model shall determine
 		 * the Stored with Scene behavior of that model.
 		 */
-		if (bt_mesh_model_is_extended(entry->model)) {
+		if (bt_mesh_model_is_extended(entry->model) &&
+		    entry->model->id != BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV) {
 			continue;
 		}
 
