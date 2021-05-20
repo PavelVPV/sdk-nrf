@@ -35,6 +35,8 @@ manifest:
       url-base: https://github.com/NordicSemiconductor
     - name: pelioniot
       url-base: https://github.com/PelionIoT
+    - name: pavelvpv
+      url-base: https://github.com/PavelVPV
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -99,9 +101,10 @@ manifest:
       revision: 6402e996db829901dc715de41e3669e28fefb670
       path: bootloader/mcuboot
     - name: nrfxlib
+      remote: pavelvpv
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: 5c6944ecf908d050da93d8755c3441a35ebdfa98
+      revision: 9286d7d7782c7be66e229833bc266c986b354e4e
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tfm
