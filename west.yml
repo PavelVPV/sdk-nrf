@@ -57,7 +57,7 @@ manifest:
     - name: zephyr
       repo-path: sdk-zephyr
       remote: pavelvpv
-      revision: d77a50235b197b52fc02f30b2e12d69bbd104c42
+      revision: bbc0c09d81ff873ccc8656abb071e1a40892e255
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
