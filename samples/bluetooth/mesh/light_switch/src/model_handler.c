@@ -60,6 +60,8 @@ static void button_handler_cb(uint32_t pressed, uint32_t changed)
 			continue;
 		}
 
+		printk("Button %d pressed: %d\n", i, !buttons[i].status);
+
 		struct bt_mesh_onoff_set set = {
 			.on_off = !buttons[i].status,
 		};
