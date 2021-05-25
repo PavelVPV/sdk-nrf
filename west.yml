@@ -105,7 +105,7 @@ manifest:
       remote: pavelvpv
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: 7f555d405e5d26a8cf27880fe0fa63b92d25f387
+      revision: 9286d7d7782c7be66e229833bc266c986b354e4e
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tfm
