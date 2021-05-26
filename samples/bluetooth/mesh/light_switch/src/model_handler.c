@@ -166,11 +166,63 @@ static const struct bt_mesh_comp comp = {
 	.elem_count = ARRAY_SIZE(elements),
 };
 
+#include <soc.h>
+
+static inline void pin_set(uint32_t pin)
+{
+	NRF_P0->OUTSET = 1 << pin;
+	__asm("NOP");
+	__asm("NOP");
+	__asm("NOP");
+	__asm("NOP");
+}
+
+static inline void pin_clr(uint32_t pin)
+{
+	NRF_P0->OUTCLR = 1 << pin;
+	__asm("NOP");
+	__asm("NOP");
+	__asm("NOP");
+	__asm("NOP");
+}
+
+static inline void pin_toggle(uint32_t pin, uint32_t count)
+{
+	for (uint32_t i = 0; i < count; i++) {
+		pin_set(pin);
+		pin_clr(pin);
+	}
+}
+
+static void pin_cfg(uint32_t pin)
+{
+	static uint32_t pins_configured_mask;
+	if (pins_configured_mask & (1 << pin)) {
+		return;
+	}
+
+	pins_configured_mask |= (1 << pin);
+
+	NRF_P0->PIN_CNF[pin] = 0;
+	NRF_P0->PIN_CNF[pin] |= (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos) & GPIO_PIN_CNF_DIR_Msk;
+	NRF_P0->PIN_CNF[pin] |= (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos) & GPIO_PIN_CNF_PULL_Msk;
+	NRF_P0->PIN_CNF[pin] |= (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos) & GPIO_PIN_CNF_DRIVE_Msk;
+	NRF_P0->PIN_CNF[pin] |= (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos) & GPIO_PIN_CNF_SENSE_Msk;
+	NRF_P0->OUTCLR = 1 << pin;
+
+	pin_toggle(pin, 1);
+}
+
 const struct bt_mesh_comp *model_handler_init(void)
 {
 	static struct button_handler button_handler = {
 		.cb = button_handler_cb,
 	};
+
+	pin_cfg(3);
+	pin_cfg(4);
+	pin_cfg(28);
+	pin_cfg(29);
 
 	dk_button_handler_add(&button_handler);
 	k_work_init_delayable(&attention_blink_work, attention_blink);

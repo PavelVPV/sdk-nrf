@@ -136,11 +136,41 @@ static void button_handlers_call(uint32_t button_state, uint32_t has_changed)
 	}
 }
 
+#include <soc.h>
+
+static inline void pin_set(uint32_t pin)
+{
+	NRF_P0->OUTSET = 1 << pin;
+	__asm("NOP");
+	__asm("NOP");
+	__asm("NOP");
+	__asm("NOP");
+}
+
+static inline void pin_clr(uint32_t pin)
+{
+	NRF_P0->OUTCLR = 1 << pin;
+	__asm("NOP");
+	__asm("NOP");
+	__asm("NOP");
+	__asm("NOP");
+}
+
+static inline void pin_toggle(uint32_t pin, uint32_t count)
+{
+	for (uint32_t i = 0; i < count; i++) {
+		pin_set(pin);
+		pin_clr(pin);
+	}
+}
+
 static void buttons_scan_fn(struct k_work *work)
 {
 	static uint32_t last_button_scan;
 	static bool initial_run = true;
 	uint32_t button_scan;
+
+	pin_set(3);
 
 	button_scan = get_buttons();
 	atomic_set(&my_buttons, (atomic_val_t)button_scan);
@@ -149,7 +179,9 @@ static void buttons_scan_fn(struct k_work *work)
 		if (button_scan != last_button_scan) {
 			uint32_t has_changed = (button_scan ^ last_button_scan);
 
+			pin_set(4);
 			button_handlers_call(button_scan, has_changed);
+			pin_clr(4);
 		}
 	} else {
 		initial_run = false;
@@ -184,6 +216,8 @@ static void buttons_scan_fn(struct k_work *work)
 			LOG_ERR("Cannot enable callbacks");
 		}
 	}
+
+	pin_clr(3);
 }
 
 int dk_leds_init(void)
@@ -213,6 +247,8 @@ static void button_pressed(const struct device *gpio_dev, struct gpio_callback *
 {
 	k_spinlock_key_t key = k_spin_lock(&lock);
 
+	pin_set(28);
+
 	/* Disable GPIO interrupt */
 	int err = callback_ctrl(false);
 
@@ -234,6 +270,8 @@ static void button_pressed(const struct device *gpio_dev, struct gpio_callback *
 	}
 
 	k_spin_unlock(&lock, key);
+
+	pin_clr(28);
 }
 
 int dk_buttons_init(button_handler_t button_handler)
