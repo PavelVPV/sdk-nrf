@@ -1,0 +1,4 @@
+tests:
+  bluetooth.mesh.light_ctrl_models:
+    platform_allow: native_posix
+    tags: bluetooth mesh models light_ctrl
