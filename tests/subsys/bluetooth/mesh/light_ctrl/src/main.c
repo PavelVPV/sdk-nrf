@@ -8,14 +8,23 @@
 #include <bluetooth/enocean.h>
 #include <bluetooth/mesh.h>
 #include <bluetooth/mesh/models.h>
-#include <bluetooth/mesh/light_ctrl_srv.h>
 
 /** Mocks ******************************************/
 
-static struct bt_mesh_light_ctrl_srv srv;
+static struct bt_mesh_lightness_srv lightness_srv = {
+	.ponoff.on_power_up = BT_MESH_ON_POWER_UP_OFF,
+};
+static struct bt_mesh_model mock_model_lightness = {
+	.user_data = &lightness_srv,
+	.elem_idx = 0,
+};
 
-static struct bt_mesh_model mock_model = {
-	.user_data = &srv
+static struct bt_mesh_light_ctrl_srv srv = {
+	.lightness = &lightness_srv,
+};
+static struct bt_mesh_model mock_model_ctrl = {
+	.user_data = &srv,
+	.elem_idx = 1,
 };
 
 void bt_mesh_model_msg_init(struct net_buf_simple *msg, uint32_t opcode)
@@ -31,7 +40,7 @@ int bt_mesh_model_data_store(struct bt_mesh_model *model, bool vnd,
 			     const char *name, const void *data,
 			     size_t data_len)
 {
-	zassert_equal(model, &mock_model, "Incorrect model");
+	zassert_equal(model, &mock_model_ctrl, "Incorrect model");
 	zassert_true(vnd, "vnd is not true");
 	zassert_is_null(name, "unexpected name supplied");
 	ztest_check_expected_value(data_len);
@@ -79,9 +88,36 @@ int k_work_reschedule_for_queue(struct k_work_q *queue,
 	return 0;
 }
 
+#if 0
 static ssize_t mock_read_cb(void *cb_arg, void *data, size_t len)
 {
 	// FIXME
+	return 0;
+}
+#endif
+
+void lightness_srv_change_lvl(struct bt_mesh_lightness_srv *srv,
+			      struct bt_mesh_msg_ctx *ctx,
+			      struct bt_mesh_lightness_set *set,
+			      struct bt_mesh_lightness_status *status)
+{
+}
+
+int bt_mesh_model_extend(struct bt_mesh_model *mod,
+			 struct bt_mesh_model *base_mod)
+{
+	return 0;
+}
+
+int lightness_on_power_up(struct bt_mesh_lightness_srv *srv)
+{
+	return 0;
+}
+
+int bt_mesh_onoff_srv_pub(struct bt_mesh_onoff_srv *srv,
+			  struct bt_mesh_msg_ctx *ctx,
+			  const struct bt_mesh_onoff_status *status)
+{
 	return 0;
 }
 
@@ -93,24 +129,25 @@ static void test_scene_storage(void)
 
 static void setup(void)
 {
+	lightness_srv.lightness_model = &mock_model_lightness;
+
 	zassert_not_null(_bt_mesh_light_ctrl_srv_cb.init, "Init cb is null");
 	zassert_not_null(_bt_mesh_light_ctrl_srv_cb.start, "Start cb is null");
-	_bt_mesh_light_ctrl_srv_cb.init(&mock_model);
-	_bt_mesh_light_ctrl_srv_cb.start(&mock_model);
+	zassert_ok(_bt_mesh_light_ctrl_srv_cb.init(&mock_model_ctrl), "Init failed");
+	zassert_ok(_bt_mesh_light_ctrl_srv_cb.start(&mock_model_ctrl), "Start failed");
 }
 
 static void teardown(void)
 {
 	zassert_not_null(_bt_mesh_light_ctrl_srv_cb.reset, "Reset cb is null");
-	_bt_mesh_light_ctrl_srv_cb.reset(&mock_model);
+	_bt_mesh_light_ctrl_srv_cb.reset(&mock_model_ctrl);
 }
 
 void test_main(void)
 {
 	ztest_test_suite(
 		light_ctrl_test,
-		ztest_unit_test_setup_teardown(test_scene_storage, setup, teardown),
-			 );
+		ztest_unit_test_setup_teardown(test_scene_storage, setup, teardown));
 
 	ztest_run_test_suite(light_ctrl_test);
 }
