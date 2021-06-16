@@ -973,6 +973,21 @@ extern const struct bt_mesh_sensor_type
  */
 extern const struct bt_mesh_sensor_type bt_mesh_sensor_present_amb_light_level;
 
+/** Initial CIE-1931 chromaticity coordinates
+ *
+ *  Channels:
+ *  - Chromaticity x-coordinate
+ *    - Unit: _unitless_
+ *    - Encoding: 16 bit unsigned scalar (Resolution: 1/65536)
+ *    - Range: 0 to 0.99998
+ *  - Chromaticity y-coordinate
+ *    - Unit: _unitless_
+ *    - Encoding: 16 bit unsigned scalar (Resolution: 1/65536)
+ *    - Range: 0 to 0.99998
+ */
+extern const struct bt_mesh_sensor_type
+	bt_mesh_sensor_initial_cie_1931_chromaticity_coords;
+
 /** Present CIE-1931 chromaticity coordinates
  *
  *  Channels:
@@ -987,6 +1002,17 @@ extern const struct bt_mesh_sensor_type bt_mesh_sensor_present_amb_light_level;
  */
 extern const struct bt_mesh_sensor_type
 	bt_mesh_sensor_present_cie_1931_chromaticity_coords;
+
+/** Initial correlated color temperature
+ *
+ *  Channels:
+ *  - Initial Correlated Color Temperature
+ *    - Unit: Kelvin
+ *    - Encoding: 16 bit unsigned scalar (Resolution: 1 K)
+ *    - Range: 0 to 65533
+ */
+extern const struct bt_mesh_sensor_type
+	bt_mesh_sensor_initial_correlated_col_temp;
 
 /** Present correlated color temperature
  *
@@ -1009,6 +1035,16 @@ extern const struct bt_mesh_sensor_type
  */
 extern const struct bt_mesh_sensor_type bt_mesh_sensor_present_illuminance;
 
+/** Initial luminous flux
+ *
+ *  Channels:
+ *  - Initial Luminous Flux
+ *    - Unit: Lumen
+ *    - Encoding: 16 bit unsigned scalar (Resolution: 1 lm)
+ *    - Range: 0 to 65533
+ */
+extern const struct bt_mesh_sensor_type bt_mesh_sensor_initial_luminous_flux;
+
 /** Present luminous flux
  *
  *  Channels:
@@ -1018,6 +1054,17 @@ extern const struct bt_mesh_sensor_type bt_mesh_sensor_present_illuminance;
  *    - Range: 0 to 65533
  */
 extern const struct bt_mesh_sensor_type bt_mesh_sensor_present_luminous_flux;
+
+/** Initial planckian distance
+ *
+ *  Channels:
+ *  - Initial Planckian Distance
+ *    - Unit: _unitless_
+ *    - Encoding: 16 bit signed scalar (Resolution: 1/100000)
+ *    - Range: -0.05 to 0.05
+ */
+extern const struct bt_mesh_sensor_type
+	bt_mesh_sensor_initial_planckian_distance;
 
 /** Present planckian distance
  *
