@@ -100,6 +100,24 @@ static void invalid_encoding_checking_proceed(const struct bt_mesh_sensor_type *
 	zassert_equal(err, -ERANGE, "Invalid error code when encoding: %i", err);
 }
 
+static void invalid_decoding_checking_proceed(const struct bt_mesh_sensor_type *sensor_type,
+					      const void *value,
+					      size_t size)
+{
+	struct sensor_value out_value[CONFIG_BT_MESH_SENSOR_CHANNELS_MAX] = {};
+	int err;
+
+	BT_MESH_MODEL_BUF_DEFINE(buf, BT_MESH_SENSOR_OP_SETTING_SET,
+				BT_MESH_SENSOR_MSG_MAXLEN_SETTING_SET);
+	bt_mesh_model_msg_init(&buf, BT_MESH_SENSOR_OP_SETTING_SET);
+
+	(void)net_buf_simple_add_mem(&buf, value, size);
+	(void)net_buf_simple_pull_u8(&buf);
+
+	err = sensor_value_decode(&buf, sensor_type, out_value);
+	zassert_equal(err, -ERANGE, "Invalid error code when decoding: %i", err);
+}
+
 static void percentage8_check(const struct bt_mesh_sensor_type *sensor_type)
 {
 	struct sensor_value in_value = {0};
@@ -179,7 +197,7 @@ static void chromaticity_coordinates_check(const struct bt_mesh_sensor_type *sen
 					  &test_vector[i].represented[0]);
 	}
 
-	/* Test invalid range. */
+	/* Test invalid range on encoding. */
 	struct sensor_value invalid_test_vector[][2] = {
 		{{0, -100000}, {0, 250000}},
 		{{1, 0}, {0, 250000}},
@@ -201,6 +219,7 @@ static void illuminance_check(const struct bt_mesh_sensor_type *sensor_type)
 		{{3000, 0}, 0x493E0},
 		{{10000, 500000}, 0xF4272},
 		{{167772, 140000}, 0xFFFFFE},
+		{{0xFFFFFF, 0}, 0xFFFFFF},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
@@ -210,31 +229,14 @@ static void illuminance_check(const struct bt_mesh_sensor_type *sensor_type)
 					  &test_vector[i].represented);
 	}
 
-	/* Check that values outside of range are encoded to 'value is not known' */
-	struct {
-		struct sensor_value represented;
-		uint32_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{167772, 150000}, 0xFFFFFF},
-		{{167772, 160000}, 0xFFFFFF},
+	/* Test invalid range on encoding. */
+	struct sensor_value invalid_test_vector[] = {
+		{-1, 0},
+		{167772, 150000},
 	};
 
-	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 3);
-	}
-
-	/* Check that encoded values outside of range are decoded to 'value is not known' */
-	struct {
-		struct sensor_value represented;
-		uint32_t raw;
-	} invalid_decoding_test_vector[] = {
-		{{0xFFFFFF, 0}, 0xFFFFFF},
-	};
-
-	for (int i = 0; i < ARRAY_SIZE(invalid_decoding_test_vector); i++) {
-		decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i].raw, 3,
-					  &invalid_decoding_test_vector[i].represented);
+	for (int i = 0; i < ARRAY_SIZE(invalid_test_vector); i++) {
+		invalid_encoding_checking_proceed(sensor_type, &invalid_test_vector[i]);
 	}
 }
 
@@ -257,32 +259,24 @@ static void correlated_color_temp_check(const struct bt_mesh_sensor_type *sensor
 					  &test_vector[i].represented);
 	}
 
-	/* Check that values below 800 are encoded to 'value is not known'. */
-	struct {
-		struct sensor_value represented;
-		uint16_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{0, 0}, 0xFFFF},
-		{{799, 0}, 0xFFFF},
+	/* Test invalid range on encoding. */
+	struct sensor_value invalid_encoding_test_vector[] = {
+		{0, 0},
+		{799, 0},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 2);
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i]);
 	}
 
-	/* Check that encoded values below 800 are decoded to 'value is not known'. */
-	struct {
-		struct sensor_value represented;
-		uint16_t raw;
-	} invalid_decoding_test_vector[] = {
-		{{0xFFFF, 0}, 0},
-		{{0xFFFF, 0}, 799},
+	/* Test invalid range on decoding. */
+	uint16_t invalid_decoding_test_vector[] = {
+		0,
+		799,
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_decoding_test_vector); i++) {
-		decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i].raw, 2,
-					  &invalid_decoding_test_vector[i].represented);
+		invalid_decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i], 2);
 	}
 }
 
@@ -306,18 +300,14 @@ static void luminous_flux_check(const struct bt_mesh_sensor_type *sensor_type)
 					  &test_vector[i].represented);
 	}
 
-	/* Check that values out side of range are encoded to 'value is not known'. */
-	struct {
-		struct sensor_value represented;
-		uint16_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{-1, 0}, 0xFFFF},
-		{{65536, 0}, 0xFFFF},
+	/* Test invalid range. */
+	struct sensor_value invalid_encoding_test_vector[] = {
+		{-1, 0},
+		{65536, 0},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 2);
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i]);
 	}
 }
 
@@ -340,18 +330,14 @@ static void luminous_flux_range_check(const struct bt_mesh_sensor_type *sensor_t
 					  &test_vector[i].represented[0]);
 	}
 
-	/* Check that values out side of range are encoded to 'value is not known'. */
-	struct {
-		struct sensor_value represented;
-		uint16_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{-1, 0}, 0xFFFF},
-		{{65536, 0}, 0xFFFF},
+	/* Test invalid range. */
+	struct sensor_value invalid_encoding_test_vector[][2] = {
+		{{-1, 0}, {0, 0}},
+		{{65536, 0}, {65534, 0}},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 2);
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i][0]);
 	}
 }
 
@@ -375,37 +361,42 @@ static void chromatic_distance_check(const struct bt_mesh_sensor_type *sensor_ty
 					  &test_vector[i].represented);
 	}
 
+	/* Test invalid range on encoding. */
+	struct sensor_value invalid_encoding_test_vector[] = {
+		{0, -60000},
+		{0, 60000},
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i]);
+	}
+
+	/* Test invalid range on decoding. */
+	uint16_t invalid_decoding_test_vector[] = {
+		5001,
+		-5001,
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(invalid_decoding_test_vector); i++) {
+		invalid_decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i], 2);
+	}
+
 	/* Check that values outside of range are encoded to 'value is not valid/known' */
 	struct {
 		struct sensor_value represented;
 		uint32_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{0, -60000}, 0xFFFE},
-		{{0, 60000}, 0xFFFE},
+	} valid_encoding_test_vector[] = {
 		{{0xFFFF, 0}, 0xFFFF},
 	};
 
-	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 2);
+	for (int i = 0; i < ARRAY_SIZE(valid_encoding_test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &valid_encoding_test_vector[i].represented,
+					  &valid_encoding_test_vector[i].raw, 2);
 	}
 
-	/* Check that encoded values outside of range are decoded to 'value is not valid' */
-	struct {
-		struct sensor_value represented;
-		uint32_t raw;
-	} invalid_decoding_test_vector[] = {
-		{{0xFFFE, 0}, 5001},
-		{{0xFFFE, 0}, -5001},
-		/* 0xFFFF defined as 'value is not known' is in _valid_ range and can't be decoded
-		 * correctly.
-		 */
-	};
-
-	for (int i = 0; i < ARRAY_SIZE(invalid_decoding_test_vector); i++) {
-		decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i].raw, 2,
-					  &invalid_decoding_test_vector[i].represented);
-	}
+	/* 0xFFFF defined as 'value is not known' is in _valid_ range and can't be decoded
+	 * correctly.
+	 */
 }
 
 static void percentage8_illuminance_check(const struct bt_mesh_sensor_type *sensor_type)
@@ -428,22 +419,27 @@ static void percentage8_illuminance_check(const struct bt_mesh_sensor_type *sens
 					  &test_vector[i].represented[0]);
 	}
 
-	/* Check that values out side of range are encoded to 'value is not known'. */
-	struct {
-		struct sensor_value represented[3];
-		struct __packed {
-			uint8_t p;
-			struct uint24_t i[2];
-		} raw;
-	} invalid_encoding_test_vector[] = {
-		{{{256, 0}, {0x1000000, 0}, {83886, 70000}}, {0xFF, {{0xFFFFFF}, {0x7FFFFF}}}},
-		{{{-1, 0}, {0, 0}, {-1, 0}}, {0xFF, {{0}, {0xFFFFFF}}}},
+	/* Test invalid range on encoding. */
+	struct sensor_value invalid_encoding_test_vector[][3] = {
+		{{256, 0}, {0x1000000, 0}, {83886, 70000}},
+		{{-1, 0}, {0, 0}, {-1, 0}},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type,
-					  &invalid_encoding_test_vector[i].represented[0],
-					  &invalid_encoding_test_vector[i].raw, 7);
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i][0]);
+	}
+
+	/* Test invalid range on decoding. */
+	struct __packed {
+		uint8_t p;
+		struct uint24_t i[2];
+	} invalid_decoding_test_vector[] = {
+		{201, {{0x1FFFFF}, {0x7FFFFF}}},
+		{253, {{0}, {0xFF}}},
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(invalid_decoding_test_vector); i++) {
+		invalid_decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i], 7);
 	}
 }
 
@@ -467,18 +463,14 @@ static void time_hour_24_check(const struct bt_mesh_sensor_type *sensor_type)
 					  &test_vector[i].represented);
 	}
 
-	/* Check that values out side of range are encoded to 'value is not known'. */
-	struct {
-		struct sensor_value represented;
-		uint32_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{-1, 0}, 0xFFFFFF},
-		{{0x1000000, 0}, 0xFFFFFF},
+	/* Test invalid range on encoding. */
+	struct sensor_value invalid_encoding_test_vector[] = {
+		{-1, 0},
+		{0x1000000, 0},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 2);
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i]);
 	}
 }
 
@@ -503,32 +495,24 @@ static void luminous_efficacy_check(const struct bt_mesh_sensor_type *sensor_typ
 					  &test_vector[i].represented);
 	}
 
-	/* Check that values outside of range are encoded to 'value is not known' */
-	struct {
-		struct sensor_value represented;
-		uint32_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{1801, 0}, 0xFFFF},
-		{{0xFFFE, 0}, 0xFFFF},
+	/* Test invalid range on encoding. */
+	struct sensor_value invalid_encoding_test_vector[] = {
+		{1800, 100000},
+		{0xFFFE, 0},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 2);
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i]);
 	}
 
-	/* Check that encoded values outside of range are decoded to 'value is not known' */
-	struct {
-		struct sensor_value represented;
-		uint32_t raw;
-	} invalid_decoding_test_vector[] = {
-		{{0xFFFF, 0}, 18010},
-		{{0xFFFF, 0}, 0xFFFE},
+	/* Test invalid range on decoding. */
+	uint32_t invalid_decoding_test_vector[] = {
+		18001,
+		0xFFFE,
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_decoding_test_vector); i++) {
-		decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i].raw, 2,
-					  &invalid_decoding_test_vector[i].represented);
+		invalid_decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i], 2);
 	}
 }
 
@@ -552,18 +536,14 @@ static void luminous_energy_check(const struct bt_mesh_sensor_type *sensor_type)
 					  &test_vector[i].represented);
 	}
 
-	/* Check that values out side of range are encoded to 'value is not known'. */
-	struct {
-		struct sensor_value represented;
-		uint32_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{-1, 0}, 0xFFFFFF},
-		{{0x1000000, 0}, 0xFFFFFF},
+	/* Test invalid range on encoding. */
+	struct sensor_value invalid_encoding_test_vector[] = {
+		{-1, 0},
+		{0x1000000, 0},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 2);
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i]);
 	}
 }
 
@@ -587,18 +567,14 @@ static void luminous_exposure_check(const struct bt_mesh_sensor_type *sensor_typ
 					  &test_vector[i].represented);
 	}
 
-	/* Check that values out side of range are encoded to 'value is not known'. */
-	struct {
-		struct sensor_value represented;
-		uint32_t raw;
-	} invalid_encoding_test_vector[] = {
-		{{-1, 0}, 0xFFFFFF},
-		{{0x1000000, 0}, 0xFFFFFF},
+	/* Test invalid range on encoding. */
+	struct sensor_value invalid_encoding_test_vector[] = {
+		{-1, 0},
+		{0x1000000, 0},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
-		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
-					  &invalid_encoding_test_vector[i].raw, 2);
+		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i]);
 	}
 }
 

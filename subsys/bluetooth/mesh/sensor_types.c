@@ -247,9 +247,10 @@ static int scalar_encode(const struct bt_mesh_sensor_format *format,
 		uint32_t type_max = BIT64(8 * format->size) - 1;
 
 		if (repr->flags & (HAS_HIGHER_THAN | HAS_INVALID) &&
-		    type_max != val->val1) {
+		    val->val1 == type_max - 1) {
 			raw = type_max - 1;
-		} else if (repr->flags & HAS_UNDEFINED) {
+		} else if (repr->flags & HAS_UNDEFINED &&
+			   val->val1 == type_max) {
 			raw = type_max;
 		} else {
 			return -ERANGE;
@@ -326,9 +327,10 @@ static int scalar_decode(const struct bt_mesh_sensor_format *format,
 
 		uint32_t type_max = BIT64(8 * format->size) - 1;
 
-		if (repr->flags & (HAS_HIGHER_THAN | HAS_INVALID) &&
-		    (uint32_t)raw != type_max) {
+		if (repr->flags & (HAS_HIGHER_THAN | HAS_INVALID) && raw == type_max - 1) {
 			type_max -= 1;
+		} else if (raw != type_max) {
+			return -ERANGE;
 		}
 
 		val->val1 = type_max;
