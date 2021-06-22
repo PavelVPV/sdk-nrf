@@ -57,6 +57,8 @@ UNIT(volt) = { "Volt", "V" };
 UNIT(ampere) = { "Ampere", "A" };
 UNIT(watt) = { "Watt", "W" };
 UNIT(kwh) = { "Kilo Watt hours", "kWh" };
+UNIT(va) = { "Volt Ampere", "VA" };
+UNIT(kvah) = { "Kilo Volt Ampere hours", "kVAh" };
 UNIT(db) = { "Decibel", "dB" };
 UNIT(lux) = { "Lux", "lx" };
 UNIT(lux_hour) = { "Lux hours", "lxh" };
@@ -570,6 +572,14 @@ FORMAT(energy32)	 = SCALAR_FORMAT(4,
 					 UNSIGNED | HAS_INVALID | HAS_UNDEFINED,
 					 kwh,
 					 SCALAR(1e-3, 0));
+FORMAT(apparent_energy32)	 = SCALAR_FORMAT(4,
+					 UNSIGNED | HAS_INVALID | HAS_UNDEFINED,
+					 kvah,
+					 SCALAR(1e-3, 0));
+FORMAT(apparent_power)		 = SCALAR_FORMAT(3,
+					 (UNSIGNED | HAS_INVALID | HAS_UNDEFINED),
+					 va,
+					 SCALAR(1e-1, 0));
 FORMAT(power)		 = SCALAR_FORMAT(3,
 					 (UNSIGNED | HAS_UNDEFINED),
 					 watt,
@@ -953,6 +963,12 @@ SENSOR_TYPE(rel_runtime_in_an_input_voltage_range) = {
 /*******************************************************************************
  * Energy management
  ******************************************************************************/
+SENSOR_TYPE(dev_power_range_spec) = {
+	.id = BT_MESH_PROP_ID_DEV_POWER_RANGE_SPEC,
+	CHANNELS(CHANNEL("Min power value", power),
+		 CHANNEL("Typical power value", power),
+		 CHANNEL("Max power value", power)),
+};
 SENSOR_TYPE(present_dev_input_power) = {
 	.id = BT_MESH_PROP_ID_PRESENT_DEV_INPUT_POWER,
 	CHANNELS(CHANNEL("Present device input power", power)),
@@ -990,6 +1006,22 @@ SENSOR_TYPE(rel_dev_runtime_in_a_generic_level_range) = {
 	CHANNELS(CHANNEL("Relative value", percentage_8),
 		 CHANNEL("Min", gen_lvl),
 		 CHANNEL("Max", gen_lvl)),
+};
+SENSOR_TYPE(apparent_energy) = {
+	.id = BT_MESH_PROP_ID_APPARENT_ENERGY,
+	CHANNELS(CHANNEL("Apparent energy", apparent_energy32)),
+};
+SENSOR_TYPE(apparent_power) = {
+	.id = BT_MESH_PROP_ID_APPARENT_POWER,
+	CHANNELS(CHANNEL("Apparent power", apparent_power)),
+};
+SENSOR_TYPE(active_energy_loadside) = {
+	.id = BT_MESH_PROP_ID_ACTIVE_ENERGY_LOADSIDE,
+	CHANNELS(CHANNEL("Energy", energy32)),
+};
+SENSOR_TYPE(active_power_loadside) = {
+	.id = BT_MESH_PROP_ID_ACTIVE_POWER_LOADSIDE,
+	CHANNELS(CHANNEL("Power", power)),
 };
 
 /*******************************************************************************

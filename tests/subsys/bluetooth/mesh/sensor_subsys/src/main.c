@@ -7,6 +7,8 @@
 #include <math.h>
 #include <stdint.h>
 
+#include <sys/byteorder.h>
+
 #include <ztest.h>
 #include <bluetooth/mesh/properties.h>
 #include <bluetooth/mesh/sensor_types.h>
@@ -52,8 +54,23 @@ static void encoding_checking_proceed(const struct bt_mesh_sensor_type *sensor_t
 				BT_MESH_SENSOR_MSG_MAXLEN_SETTING_SET);
 	bt_mesh_model_msg_init(&buf, BT_MESH_SENSOR_OP_SETTING_SET);
 
+	for (uint32_t i = 0; i < sensor_type->channel_count; ++i) {
+		printk("Input sensor_value[%d]: {%i, %i}\n", i, value[i].val1, value[i].val2);
+	}
+	printk("expected: ");
+	for (int i = 0; i < size; i++) {
+		printk("%02X", ((uint8_t*)expected)[i]);
+	}
+	printk("\n");
+
 	err = sensor_value_encode(&buf, sensor_type, value);
 	zassert_ok(err, "Encoding failed with error code: %i", err);
+
+	printk("encoded: ");
+	for (int i = 0; i < size; i++) {
+		printk("%02X", ((uint8_t*)&buf.data[1])[i]);
+	}
+	printk("\n");
 
 	zassert_mem_equal(&buf.data[1], expected, size,
 		"Encoded value is not equal expected");
@@ -78,6 +95,7 @@ static void decoding_checking_proceed(const struct bt_mesh_sensor_type *sensor_t
 	zassert_ok(err, "Decoding failed with error code: %i", err);
 
 	for (uint32_t i = 0; i < sensor_type->channel_count; ++i) {
+		printk("Output sensor_value[%d]: {%i, %i}\n", i, out_value[i].val1, out_value[i].val2);
 		zassert_equal(expected[i].val1, out_value[i].val1,
 				"Encoded value val1: %i is not equal decoded: %i",
 				expected[i].val1, out_value[i].val1);
@@ -408,8 +426,10 @@ static void percentage8_illuminance_check(const struct bt_mesh_sensor_type *sens
 			struct uint24_t i[2];
 		} raw;
 	} test_vector[] = {
-		{{{1, 0}, {0, 0}, {83886, 70000}}, {2, {{0}, {0x7FFFFF}}}},
-		{{{25, 0}, {10000, 500000}, {3000, 0}}, {50, {{0xF4272}, {0x493E0}}}},
+		{{{1, 0}, {0, 0}, {83886, 70000}}, {2, {{sys_cpu_to_le24(0)},
+							{sys_cpu_to_le24(0x7FFFFF)}}}},
+		{{{25, 0}, {10000, 500000}, {3000, 0}}, {50, {{sys_cpu_to_le24(0xF4272)},
+							      {sys_cpu_to_le24(0x493E0)}}}},
 	};
 
 	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
@@ -576,6 +596,246 @@ static void luminous_exposure_check(const struct bt_mesh_sensor_type *sensor_typ
 	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
 		invalid_encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i]);
 	}
+}
+
+static void power_specification_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented[3];
+		struct uint24_t raw[3];
+	} test_vector[] = {
+		{{{0, 0}, {1, 0}, {65536, 0}}, {{0}, {10}, {655360}}},
+		{{{1234, 0}, {838860, 500000}, {1677721, 400000}}, {{12340}, {8388605}, {16777214}}},
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented[0],
+					  &test_vector[i].raw, 9);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 9,
+					  &test_vector[i].represented[0]);
+	}
+
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	struct {
+		struct sensor_value represented[3];
+		uint32_t raw[3];
+	} invalid_encoding_test_vector[] = {
+		{{{0, 0}, {-1, 0}, {321, 0}, {{0, 0}, {0xFFFFFF}, {3210, 0}}},
+		{{{10, 0}, {1677721, 500000}, {2000000, 0}}, {{100}, {0xFFFFFF}, {0xFFFFFF}},
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
+					  &invalid_encoding_test_vector[i].raw, 3);
+	}
+
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
+		struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} invalid_decoding_test_vector[] = {
+		{{0xFFFFFF, 0}, 0xFFFFFF},
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(invalid_decoding_test_vector); i++) {
+		decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i].raw, 3,
+					  &invalid_decoding_test_vector[i].represented);
+	}
+}
+
+static void power_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} test_vector[] = {
+		{{0, 0}, 0},
+		{{1234, 0}, 12340},
+		{{87654, 300000}, 876543},
+		{{1677721, 400000}, 0xFFFFFE},
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented,
+					  &test_vector[i].raw, 3);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 3,
+					  &test_vector[i].represented);
+	}
+
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} invalid_encoding_test_vector[] = {
+		{{-1, 0}, 0xFFFFFF},
+		{{1677721, 500000}, 0xFFFFFF},
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(invalid_encoding_test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &invalid_encoding_test_vector[i].represented,
+					  &invalid_encoding_test_vector[i].raw, 3);
+	}
+
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
+		struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} invalid_decoding_test_vector[] = {
+		{{0xFFFFFF, 0}, 0xFFFFFF},
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(invalid_decoding_test_vector); i++) {
+		decoding_checking_proceed(sensor_type, &invalid_decoding_test_vector[i].raw, 3,
+					  &invalid_decoding_test_vector[i].represented);
+	}
+}
+
+static void energy_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} test_vector[] = {
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented,
+					  &test_vector[i].raw, 3);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 3,
+					  &test_vector[i].represented);
+	}
+
+	/* Test invalid range. */
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
+}
+
+static void energy32_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} test_vector[] = {
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented,
+					  &test_vector[i].raw, 4);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 4,
+					  &test_vector[i].represented);
+	}
+
+	/* Test invalid range. */
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
+}
+
+static void cos_of_the_angle_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} test_vector[] = {
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented,
+					  &test_vector[i].raw, 1);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 1,
+					  &test_vector[i].represented);
+	}
+
+	/* Test invalid range. */
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
+}
+
+static void energy_in_a_period_of_day_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented[3];
+		struct __packed {
+			struct uint24_t energy;
+			uint8_t start_time;
+			uint8_t end_time;
+		} raw;
+	} test_vector[] = {
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented[0],
+					  &test_vector[i].raw, 5);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 5,
+					  &test_vector[i].represented[0]);
+	}
+
+	/* Test invalid range. */
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
+}
+
+static void relative_runtime_in_a_generic_level_range_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented[3];
+		struct __packed {
+			uint8_t relative;
+			uint16_t min;
+			uint16_t max;
+		} raw;
+	} test_vector[] = {
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented[0],
+					  &test_vector[i].raw, 5);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 5,
+					  &test_vector[i].represented[0]);
+	}
+
+	/* Test invalid range. */
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
+}
+
+static void apparent_energy32_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} test_vector[] = {
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented,
+					  &test_vector[i].raw, 4);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 4,
+					  &test_vector[i].represented);
+	}
+
+	/* Test invalid range. */
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
+}
+
+static void apparent_power_check(const struct bt_mesh_sensor_type *sensor_type)
+{
+	struct {
+		struct sensor_value represented;
+		uint32_t raw;
+	} test_vector[] = {
+	};
+
+	for (int i = 0; i < ARRAY_SIZE(test_vector); i++) {
+		encoding_checking_proceed(sensor_type, &test_vector[i].represented,
+					  &test_vector[i].raw, 3);
+		decoding_checking_proceed(sensor_type, &test_vector[i].raw, 3,
+					  &test_vector[i].represented);
+	}
+
+	/* Test invalid range. */
+	/* Check that values out side of range are encoded to 'value is not known'. */
+	/* Check that encoded values outside of range are decoded to 'value is not known' */
 }
 
 static void test_motion_sensor(void)
@@ -780,6 +1040,127 @@ static void test_luminous_flux_range(void)
 	luminous_flux_range_check(sensor_type);
 }
 
+/* Energy management sensors */
+
+static void test_dev_power_range_spec(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_DEV_POWER_RANGE_SPEC);
+	sensor_type_sanitize(sensor_type);
+	power_specification_check(sensor_type);
+}
+
+static void test_present_dev_input_power(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_PRESENT_DEV_INPUT_POWER);
+	sensor_type_sanitize(sensor_type);
+	power_check(sensor_type);
+}
+
+static void test_present_dev_op_efficiency(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_PRESENT_DEV_OP_EFFICIENCY);
+	sensor_type_sanitize(sensor_type);
+	percentage8_check(sensor_type);
+}
+
+static void test_tot_dev_energy_use(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_TOT_DEV_ENERGY_USE);
+	sensor_type_sanitize(sensor_type);
+	energy_check(sensor_type);
+}
+
+static void test_precise_tot_dev_energy_use(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_TOT_DEV_ENERGY_USE);
+	sensor_type_sanitize(sensor_type);
+	energy32_check(sensor_type);
+}
+
+static void test_dev_energy_use_since_turn_on(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_DEV_ENERGY_USE_SINCE_TURN_ON);
+	sensor_type_sanitize(sensor_type);
+	energy_check(sensor_type);
+}
+
+static void test_power_factor(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_POWER_FACTOR);
+	sensor_type_sanitize(sensor_type);
+	cos_of_the_angle_check(sensor_type);
+}
+
+static void test_rel_dev_energy_use_in_a_period_of_day(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(
+					BT_MESH_PROP_ID_REL_DEV_ENERGY_USE_IN_A_PERIOD_OF_DAY);
+	sensor_type_sanitize(sensor_type);
+	energy_in_a_period_of_day_check(sensor_type);
+}
+
+static void test_rel_dev_runtime_in_a_generic_level_range(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(
+					BT_MESH_PROP_ID_REL_DEV_RUNTIME_IN_A_GENERIC_LEVEL_RANGE);
+	sensor_type_sanitize(sensor_type);
+	relative_runtime_in_a_generic_level_range_check(sensor_type);
+}
+
+static void test_apparent_energy(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_APPARENT_ENERGY);
+	sensor_type_sanitize(sensor_type);
+	apparent_energy32_check(sensor_type);
+}
+
+static void test_apparent_power(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_APPARENT_POWER);
+	sensor_type_sanitize(sensor_type);
+	apparent_power_check(sensor_type);
+}
+
+static void test_active_energy_loadside(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_ACTIVE_ENERGY_LOADSIDE);
+	sensor_type_sanitize(sensor_type);
+	energy_check(sensor_type);
+}
+
+static void test_active_power_loadside(void)
+{
+	const struct bt_mesh_sensor_type *sensor_type;
+
+	sensor_type = bt_mesh_sensor_type_get(BT_MESH_PROP_ID_ACTIVE_POWER_LOADSIDE);
+	sensor_type_sanitize(sensor_type);
+	power_check(sensor_type);
+}
+
 void test_main(void)
 {
 	ztest_test_suite(sensor_types_test,
@@ -803,7 +1184,22 @@ void test_main(void)
 			ztest_unit_test(test_luminous_efficacy),
 			ztest_unit_test(test_luminous_energy_since_turn_on),
 			ztest_unit_test(test_luminous_exposure),
-			ztest_unit_test(test_luminous_flux_range)
+			ztest_unit_test(test_luminous_flux_range),
+
+			/* Energy management sensors */
+			ztest_unit_test(test_dev_power_range_spec),
+			ztest_unit_test(test_present_dev_input_power),
+			ztest_unit_test(test_present_dev_op_efficiency),
+			ztest_unit_test(test_tot_dev_energy_use),
+			ztest_unit_test(test_precise_tot_dev_energy_use),
+			ztest_unit_test(test_dev_energy_use_since_turn_on),
+			ztest_unit_test(test_power_factor),
+			ztest_unit_test(test_rel_dev_energy_use_in_a_period_of_day),
+			ztest_unit_test(test_rel_dev_runtime_in_a_generic_level_range),
+			ztest_unit_test(test_apparent_energy),
+			ztest_unit_test(test_apparent_power),
+			ztest_unit_test(test_active_energy_loadside),
+			ztest_unit_test(test_active_power_loadside)
 			 );
 
 	ztest_run_test_suite(sensor_types_test);
