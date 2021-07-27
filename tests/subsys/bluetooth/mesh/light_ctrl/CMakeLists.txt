@@ -5,7 +5,8 @@
 #
 cmake_minimum_required(VERSION 3.13.1)
 
-find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+include($ENV{ZEPHYR_BASE}/cmake/app/boilerplate.cmake NO_POLICY_SCOPE)
+#find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(bt_mesh_ligth_ctrl_sybsystem_test)
 
 FILE(GLOB app_sources src/*.c)
@@ -14,6 +15,8 @@ target_sources(app
   PRIVATE
   ${app_sources}
   ${NRF_DIR}/subsys/bluetooth/mesh/light_ctrl_srv.c
+  ${NRF_DIR}/subsys/bluetooth/mesh/sensor_types.c
+  ${NRF_DIR}/subsys/bluetooth/mesh/sensor.c
   ${ZEPHYR_BASE}/subsys/net/buf.c
   )
 
@@ -39,10 +42,24 @@ target_compile_options(app
   -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_TIME_FADE_STANDBY_AUTO=5000
   -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_TIME_PROLONG=3
   -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_TIME_FADE_STANDBY_MANUAL=500
-  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_LVL_STANDBY=0
-  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_LVL_ON=65535
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_LVL_STANDBY=500
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_LVL_ON=20000
   -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_LVL_PROLONG=10000
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG=1
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_INTERVAL=100
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_KIU=250
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_KID=25
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_KPU=80
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_KPD=80
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_ACCURACY=2
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_LUX_ON=500
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_LUX_PROLONG=200
+  -DCONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_LUX_STANDBY=100
 )
+
+add_library(set-app-flags INTERFACE)
+target_compile_options(set-app-flags INTERFACE -O0 -Wno-unused-function -Wno-unused-variable)
+target_link_libraries(app PRIVATE set-app-flags)
 
 zephyr_ld_options(
     ${LINKERFLAGPREFIX},--allow-multiple-definition

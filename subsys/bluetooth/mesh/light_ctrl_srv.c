@@ -497,6 +497,7 @@ static void ctrl_disable(struct bt_mesh_light_ctrl_srv *srv)
 	srv->state = LIGHT_CTRL_STATE_STANDBY;
 #if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
 	srv->reg.i = 0;
+	srv->reg.prev = 0;
 #endif
 
 	BT_DBG("Disable Light Control");
@@ -570,12 +571,13 @@ static void reg_step(struct k_work *work)
 			return;
 		}
 
-		srv->reg.prev = output;
 		atomic_set_bit(&srv->flags, FLAG_REGULATOR);
 		light_set(srv, light_to_repr(output, LINEAR), 0);
 	} else if (atomic_test_and_clear_bit(&srv->flags, FLAG_REGULATOR)) {
 		light_set(srv, light_to_repr(lvl, LINEAR), 0);
 	}
+
+	srv->reg.prev = output;
 }
 #endif
 
