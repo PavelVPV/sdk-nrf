@@ -1000,6 +1000,13 @@ int bt_mesh_sensor_srv_pub(struct bt_mesh_sensor_srv *srv,
 
 	sensor_cadence_update(sensor, value);
 
+	/** Update the periodic publication if the sensor cadence has changed. */
+	if (sensor->state.fast_pub) {
+		srv->pub.fast_period = true;
+		srv->pub.period_div =
+			MAX(srv->pub.period_div, sensor->state.pub_div);
+	}
+
 	err = model_send(srv->model, ctx, &msg);
 	if (err) {
 		return err;
