@@ -19,6 +19,7 @@ extern "C" {
 #endif
 
 const struct bt_mesh_comp *model_handler_init(void);
+void uart_recv(void);
 
 #ifdef __cplusplus
 }

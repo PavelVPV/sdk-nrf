@@ -5,21 +5,47 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 #include <dk_buttons_and_leds.h>
 
-#include <shell/shell.h>
-#include <shell/shell_uart.h>
-
 #include "chat_cli.h"
 #include "model_handler.h"
+
+#include <drivers/uart.h>
 
 #include <logging/log.h>
 LOG_MODULE_DECLARE(chat);
 
-static const struct shell *chat_shell;
+/* UART payload buffer element size. */
+#define UART_BUF_SIZE 20
+
+#define NUS_WRITE_TIMEOUT K_MSEC(150)
+#define UART_WAIT_FOR_BUF_DELAY K_MSEC(50)
+#define UART_RX_TIMEOUT 50
+
+static const struct device *uart;
+static struct k_work_delayable uart_work;
+
+struct uart_data_t {
+	void *fifo_reserved;
+	uint8_t  data[UART_BUF_SIZE];
+	uint16_t len;
+};
+
+static K_FIFO_DEFINE(fifo_uart_tx_data);
+static K_FIFO_DEFINE(fifo_uart_rx_data);
+
+static int uart_send(const uint8_t *const data, uint16_t len);
+
+#define MSG_PRINT(fmt, ...) \
+	do { \
+		char _str[128]; \
+		sprintf(_str, fmt "\n", ##__VA_ARGS__); \
+		uart_send(_str, strnlen(_str, 127)); \
+	} while (0)
 
 /******************************************************************************/
 /*************************** Health server setup ******************************/
@@ -164,16 +190,16 @@ static void handle_chat_presence(struct bt_mesh_chat_cli *chat,
 {
 	if (address_is_local(chat->model, ctx->addr)) {
 		if (address_is_unicast(ctx->recv_dst)) {
-			shell_print(chat_shell, "<you> are %s",
+			MSG_PRINT("<you> are %s",
 				    presence_string[presence]);
 		}
 	} else {
 		if (address_is_unicast(ctx->recv_dst)) {
-			shell_print(chat_shell, "<0x%04X> is %s", ctx->addr,
+			MSG_PRINT("<0x%04X> is %s", ctx->addr,
 				    presence_string[presence]);
 		} else if (presence_cache_entry_check_and_update(ctx->addr,
 								 presence)) {
-			shell_print(chat_shell, "<0x%04X> is now %s",
+			MSG_PRINT("<0x%04X> is now %s",
 				    ctx->addr,
 				    presence_string[presence]);
 		}
@@ -189,7 +215,7 @@ static void handle_chat_message(struct bt_mesh_chat_cli *chat,
 		return;
 	}
 
-	shell_print(chat_shell, "<0x%04X>: %s", ctx->addr, msg);
+	MSG_PRINT("<0x%04X>: %s", ctx->addr, msg);
 }
 
 static void handle_chat_private_message(struct bt_mesh_chat_cli *chat,
@@ -201,13 +227,13 @@ static void handle_chat_private_message(struct bt_mesh_chat_cli *chat,
 		return;
 	}
 
-	shell_print(chat_shell, "<0x%04X>: *you* %s", ctx->addr, msg);
+	MSG_PRINT("<0x%04X>: *you* %s", ctx->addr, msg);
 }
 
 static void handle_chat_message_reply(struct bt_mesh_chat_cli *chat,
 				      struct bt_mesh_msg_ctx *ctx)
 {
-	shell_print(chat_shell, "<0x%04X> received the message", ctx->addr);
+	MSG_PRINT("<0x%04X> received the message", ctx->addr);
 }
 
 static const struct bt_mesh_chat_cli_handlers chat_handlers = {
@@ -236,16 +262,13 @@ static struct bt_mesh_elem elements[] = {
 static void print_client_status(void)
 {
 	if (!bt_mesh_is_provisioned()) {
-		shell_print(chat_shell,
-			    "The mesh node is not provisioned. Please provision the mesh node before using the chat.");
+		MSG_PRINT("The mesh node is not provisioned. Please provision the mesh node before using the chat.");
 	} else {
-		shell_print(chat_shell,
-			    "The mesh node is provisioned. The client address is 0x%04x.",
-			    bt_mesh_model_elem(chat.model)->addr);
+		MSG_PRINT("The mesh node is provisioned. The client address is 0x%04x.",
+			  bt_mesh_model_elem(chat.model)->addr);
 	}
 
-	shell_print(chat_shell, "Current presence: %s",
-		    presence_string[chat.presence]);
+	MSG_PRINT("Current presence: %s", presence_string[chat.presence]);
 }
 
 static const struct bt_mesh_comp comp = {
@@ -257,14 +280,14 @@ static const struct bt_mesh_comp comp = {
 /******************************************************************************/
 /******************************** Chat shell **********************************/
 /******************************************************************************/
-static int cmd_status(const struct shell *shell, size_t argc, char *argv[])
+static int cmd_status(size_t argc, const char *argv[])
 {
 	print_client_status();
 
 	return 0;
 }
 
-static int cmd_message(const struct shell *shell, size_t argc, char *argv[])
+static int cmd_message(size_t argc, const char *argv[])
 {
 	int err;
 
@@ -278,13 +301,12 @@ static int cmd_message(const struct shell *shell, size_t argc, char *argv[])
 	}
 
 	/* Print own messages in the chat. */
-	shell_print(shell, "<you>: %s", argv[1]);
+	MSG_PRINT("<you>: %s", argv[1]);
 
 	return 0;
 }
 
-static int cmd_private_message(const struct shell *shell, size_t argc,
-			       char *argv[])
+static int cmd_private_message(size_t argc, const char *argv[])
 {
 	uint16_t addr;
 	int err;
@@ -296,7 +318,7 @@ static int cmd_private_message(const struct shell *shell, size_t argc,
 	addr = strtol(argv[1], NULL, 0);
 
 	/* Print own message to the chat. */
-	shell_print(shell, "<you>: *0x%04X* %s", addr, argv[2]);
+	MSG_PRINT("<you>: *0x%04X* %s", addr, argv[2]);
 
 	err = bt_mesh_chat_cli_private_message_send(&chat, addr, argv[2]);
 	if (err) {
@@ -306,8 +328,7 @@ static int cmd_private_message(const struct shell *shell, size_t argc,
 	return 0;
 }
 
-static int cmd_presence_set(const struct shell *shell, size_t argc,
-			    char *argv[])
+static int cmd_presence_set(size_t argc, const char *argv[])
 {
 	size_t i;
 
@@ -328,25 +349,21 @@ static int cmd_presence_set(const struct shell *shell, size_t argc,
 			}
 
 			/* Print own presence in the chat. */
-			shell_print(shell, "You are now %s",
-				    presence_string[presence]);
+			MSG_PRINT("You are now %s", presence_string[presence]);
 
 			return 0;
 		}
 	}
 
-	shell_print(shell,
-		    "Unknown presence status: %s. Possible presence statuses:",
-		    argv[1]);
+	MSG_PRINT("Unknown presence status: %s. Possible presence statuses:", argv[1]);
 	for (i = 0; i < ARRAY_SIZE(presence_string); i++) {
-		shell_print(shell, "%s", presence_string[i]);
+		MSG_PRINT("%s", presence_string[i]);
 	}
 
 	return 0;
 }
 
-static int cmd_presence_get(const struct shell *shell, size_t argc,
-			    char *argv[])
+static int cmd_presence_get(size_t argc, const char *argv[])
 {
 	uint16_t addr;
 	int err;
@@ -365,57 +382,283 @@ static int cmd_presence_get(const struct shell *shell, size_t argc,
 	return 0;
 }
 
-SHELL_STATIC_SUBCMD_SET_CREATE(presence_cmds,
-	SHELL_CMD_ARG(set, NULL,
-		      "Set presence of the current client <presence: available, away, dnd or inactive>",
-		      cmd_presence_set, 2, 0),
-	SHELL_CMD_ARG(get, NULL,
-		      "Get presence status of the remote node <node>",
-		      cmd_presence_get, 2, 0),
-	SHELL_SUBCMD_SET_END
-);
+static struct {
+	int(*handler)(size_t argc, const char *argv[]);
+	const uint8_t *name;
+} cmds[] = {
+	{ cmd_status, "status" },
+	{ cmd_presence_set, "presence_set"},
+	{ cmd_presence_get, "presence_get"},
+	{ cmd_message, "msg"},
+	{ cmd_private_message, "priv"},
+};
 
-static int cmd_presence(const struct shell *shell, size_t argc, char *argv[])
+static void cmd_handle(uint8_t *cmd, uint32_t len)
 {
-	if (argc == 1) {
-		shell_help(shell);
-		/* shell returns 1 when help is printed */
-		return 1;
+	char str[128];
+	char delim[] = " ";
+	char *ptr;
+	const char *argv[10] = {};
+	size_t argc = 0;
+	char *save;
+
+	if (len == 0) {
+		return;
 	}
 
-	if (argc != 3) {
-		return -EINVAL;
+	len = len > 127 ? 127 : len;
+	memcpy(str, cmd, len);
+	str[len - 1] = '\0';
+
+	ptr = strtok_r(str, delim, &save);
+
+	while (ptr != NULL) {
+		argv[argc] = ptr;
+		argc++;
+
+		if (argc == 10 || ptr[0] == '"') {
+			break;
+		}
+
+		ptr = strtok_r(NULL, delim, &save);
+	};
+
+	if (argc == 0) {
+		MSG_PRINT("Wrong command");
+		return;
+	}
+
+	for (size_t i = 0; i < ARRAY_SIZE(cmds); i++) {
+		if (!strncmp(cmds[i].name, argv[0], strlen(cmds[i].name))) {
+			int err = cmds[i].handler(argc, argv);
+			if (err) {
+				LOG_WRN("Failed to parse command: %d", err);
+			}
+
+			return;
+		}
+	}
+
+	MSG_PRINT("Unknown command");
+}
+
+/******************************************************************************/
+/******************************** UART handler ********************************/
+/******************************************************************************/
+static int uart_send(const uint8_t *const data, uint16_t len)
+{
+	int err;
+
+	for (uint16_t pos = 0; pos != len;) {
+		struct uart_data_t *tx = k_malloc(sizeof(*tx));
+
+		if (!tx) {
+			LOG_WRN("Not able to allocate UART send data buffer");
+			return -1;
+		}
+
+		/* Keep the last byte of TX buffer for potential LF char. */
+		size_t tx_data_size = sizeof(tx->data) - 1;
+
+		if ((len - pos) > tx_data_size) {
+			tx->len = tx_data_size;
+		} else {
+			tx->len = (len - pos);
+		}
+
+		memcpy(tx->data, &data[pos], tx->len);
+
+		pos += tx->len;
+
+		/* Append the LF character when the CR character triggered
+		 * transmission from the peer.
+		 */
+		if ((pos == len) && (data[len - 1] == '\r')) {
+			tx->data[tx->len] = '\n';
+			tx->len++;
+		}
+
+		err = uart_tx(uart, tx->data, tx->len, SYS_FOREVER_MS);
+		if (err) {
+			k_fifo_put(&fifo_uart_tx_data, tx);
+		}
 	}
 
 	return 0;
 }
 
-SHELL_STATIC_SUBCMD_SET_CREATE(chat_cmds,
-	SHELL_CMD_ARG(status, NULL, "Print client status", cmd_status, 1, 0),
-	SHELL_CMD(presence, &presence_cmds, "Presence commands", cmd_presence),
-	SHELL_CMD_ARG(private, NULL,
-		      "Send a private text message to a client <node> <message>",
-		      cmd_private_message, 3, 0),
-	SHELL_CMD_ARG(msg, NULL, "Send a text message to the chat <message>",
-		      cmd_message, 2, 0),
-	SHELL_SUBCMD_SET_END
-);
-
-static int cmd_chat(const struct shell *shell, size_t argc, char **argv)
+static void uart_cb(const struct device *dev, struct uart_event *evt, void *user_data)
 {
-	if (argc == 1) {
-		shell_help(shell);
-		/* shell returns 1 when help is printed */
-		return 1;
+	ARG_UNUSED(dev);
+
+	static uint8_t *current_buf;
+	static size_t aborted_len;
+	static bool buf_release;
+	struct uart_data_t *buf;
+	static uint8_t *aborted_buf;
+
+	switch (evt->type) {
+	case UART_TX_DONE:
+		if ((evt->data.tx.len == 0) ||
+		    (!evt->data.tx.buf)) {
+			return;
+		}
+
+		if (aborted_buf) {
+			buf = CONTAINER_OF(aborted_buf, struct uart_data_t,
+					   data);
+			aborted_buf = NULL;
+			aborted_len = 0;
+		} else {
+			buf = CONTAINER_OF(evt->data.tx.buf,
+					   struct uart_data_t,
+					   data);
+		}
+
+		k_free(buf);
+
+		buf = k_fifo_get(&fifo_uart_tx_data, K_NO_WAIT);
+		if (!buf) {
+			return;
+		}
+
+		if (uart_tx(uart, buf->data, buf->len, SYS_FOREVER_MS)) {
+			LOG_WRN("Failed to send data over UART");
+		}
+
+		break;
+
+	case UART_RX_RDY:
+		buf = CONTAINER_OF(evt->data.rx.buf, struct uart_data_t, data);
+		buf->len += evt->data.rx.len;
+		buf_release = false;
+
+		if (buf->len == UART_BUF_SIZE) {
+			k_fifo_put(&fifo_uart_rx_data, buf);
+		} else if ((evt->data.rx.buf[buf->len - 1] == '\n') ||
+			  (evt->data.rx.buf[buf->len - 1] == '\r')) {
+			k_fifo_put(&fifo_uart_rx_data, buf);
+			current_buf = evt->data.rx.buf;
+			buf_release = true;
+			uart_rx_disable(uart);
+		}
+
+		break;
+
+	case UART_RX_DISABLED:
+		buf = k_malloc(sizeof(*buf));
+		if (buf) {
+			buf->len = 0;
+		} else {
+			LOG_WRN("Not able to allocate UART receive buffer");
+			k_work_reschedule(&uart_work, UART_WAIT_FOR_BUF_DELAY);
+			return;
+		}
+
+		uart_rx_enable(uart, buf->data, sizeof(buf->data),
+			       UART_RX_TIMEOUT);
+
+		break;
+
+	case UART_RX_BUF_REQUEST:
+		buf = k_malloc(sizeof(*buf));
+		if (buf) {
+			buf->len = 0;
+			uart_rx_buf_rsp(uart, buf->data, sizeof(buf->data));
+		} else {
+			LOG_WRN("Not able to allocate UART receive buffer");
+		}
+
+		break;
+
+	case UART_RX_BUF_RELEASED:
+		buf = CONTAINER_OF(evt->data.rx_buf.buf, struct uart_data_t,
+				   data);
+		if (buf_release && (current_buf != evt->data.rx_buf.buf)) {
+			k_free(buf);
+			buf_release = false;
+			current_buf = NULL;
+		}
+
+		break;
+
+	case UART_TX_ABORTED:
+			if (!aborted_buf) {
+				aborted_buf = (uint8_t *)evt->data.tx.buf;
+			}
+
+			aborted_len += evt->data.tx.len;
+			buf = CONTAINER_OF(aborted_buf, struct uart_data_t,
+					   data);
+
+			uart_tx(uart, &buf->data[aborted_len],
+				buf->len - aborted_len, SYS_FOREVER_MS);
+
+		break;
+
+	default:
+		break;
 	}
-
-	shell_error(shell, "%s unknown parameter: %s", argv[0], argv[1]);
-
-	return -EINVAL;
 }
 
-SHELL_CMD_ARG_REGISTER(chat, &chat_cmds, "Bluetooth Mesh Chat Client commands",
-		       cmd_chat, 1, 1);
+static void uart_work_handler(struct k_work *item)
+{
+	struct uart_data_t *buf;
+
+	buf = k_malloc(sizeof(*buf));
+	if (buf) {
+		buf->len = 0;
+	} else {
+		LOG_WRN("Not able to allocate UART receive buffer");
+		k_work_reschedule(&uart_work, UART_WAIT_FOR_BUF_DELAY);
+		return;
+	}
+
+	uart_rx_enable(uart, buf->data, sizeof(buf->data), UART_RX_TIMEOUT);
+}
+
+static int uart_init(void)
+{
+	int err;
+	struct uart_data_t *rx;
+
+	uart = device_get_binding(DT_LABEL(DT_NODELABEL(uart0)));
+	if (!uart) {
+		LOG_ERR("UART binding failed");
+		return -ENXIO;
+	}
+
+	rx = k_malloc(sizeof(*rx));
+	if (rx) {
+		rx->len = 0;
+	} else {
+		return -ENOMEM;
+	}
+
+	k_work_init_delayable(&uart_work, uart_work_handler);
+
+	err = uart_callback_set(uart, uart_cb, NULL);
+	if (err) {
+		return err;
+	}
+
+	return uart_rx_enable(uart, rx->data, sizeof(rx->data),
+			      UART_RX_TIMEOUT);
+}
+
+void uart_recv(void)
+{
+	struct uart_data_t *buf;
+
+	for (;;) {
+		/* Wait indefinitely for data to be sent over Bluetooth */
+		buf = k_fifo_get(&fifo_uart_rx_data, K_FOREVER);
+
+		cmd_handle(buf->data, buf->len);
+
+		k_free(buf);
+	}
+}
 
 /******************************************************************************/
 /******************************** Public API **********************************/
@@ -424,8 +667,8 @@ const struct bt_mesh_comp *model_handler_init(void)
 {
 	k_work_init_delayable(&attention_blink_work, attention_blink);
 
-	chat_shell = shell_backend_uart_get_ptr();
-	shell_print(chat_shell, ">>> Bluetooth Mesh Chat sample <<<");
+	uart_init();
+	MSG_PRINT(">>> Bluetooth Mesh Chat sample <<<");
 
 	return &comp;
 }
