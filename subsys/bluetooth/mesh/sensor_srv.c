@@ -801,12 +801,12 @@ static void pub_msg_add(struct bt_mesh_sensor_srv *srv,
 	uint16_t min_int = min_int_get(s, period_div, base_period);
 	int err;
 
-	if (srv->seq - s->state.seq < min_int) {
+	if ((uint16_t)(srv->seq - s->state.seq) < min_int) {
 		return;
 	}
 
 	if (!s->state.configured &&
-	    ((srv->seq - s->state.seq) < (1 << period_div))) {
+	    ((uint16_t)(srv->seq - s->state.seq) < (1 << period_div))) {
 		/** Don't publish a sensor value with not configured sensor cadence state more
 		 * frequently than base periodic publication.
 		 */
@@ -824,7 +824,7 @@ static void pub_msg_add(struct bt_mesh_sensor_srv *srv,
 		bool delta_triggered = bt_mesh_sensor_delta_threshold(s, value);
 		uint16_t interval = pub_int_get(s, period_div);
 
-		if (!delta_triggered && srv->seq - s->state.seq < interval) {
+		if (!delta_triggered && (uint16_t)(srv->seq - s->state.seq) < interval) {
 			return;
 		}
 	}
