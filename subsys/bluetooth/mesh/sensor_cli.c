@@ -353,7 +353,10 @@ static int handle_cadence_status(struct bt_mesh_model *model, struct bt_mesh_msg
 	}
 
 	if (buf->len == 0 || type->channel_count != 1) {
-		BT_WARN("Type 0x%04x doesn't support cadence", id);
+		/* NCSDK-12907: To print cadence status */
+		if (cli->cb && cli->cb->cadence) {
+			cli->cb->cadence(cli, ctx, type, NULL);
+		}
 		err = -ENOTSUP;
 		goto yield_ack;
 	}
