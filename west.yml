@@ -21,6 +21,8 @@ manifest:
     - name: ncs
       url-base: https://github.com/nrfconnect
     # Third-party repository sources:
+    - name: PavelVPV
+      url-base: https://github.com/PavelVPV
     - name: zephyrproject
       url-base: https://github.com/zephyrproject-rtos
     - name: throwtheswitch
@@ -49,8 +51,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: PavelVPV
       repo-path: sdk-zephyr
-      revision: b341c1ffbee9e1694f07a62f55b76b3f4947f603
+      revision: 2ce203c0a57eb41d34b1c4e86a2fec54361e9c0d
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
