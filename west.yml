@@ -31,6 +31,8 @@ manifest:
       url-base: https://github.com/NordicSemiconductor
     - name: memfault
       url-base: https://github.com/memfault
+    - name: PavelVPV
+      url-base: https://github.com/PavelVPV
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -50,7 +52,8 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: 86893246053c50d34618f09ec6722cae8ba19472
+      revision: ec40eb637dd8f2bee2b1b3465da40ca24ca995c0
+      remote: PavelVPV
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
