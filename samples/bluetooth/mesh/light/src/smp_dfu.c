@@ -10,6 +10,7 @@
 #include <os_mgmt/os_mgmt.h>
 #include <zephyr/mgmt/mcumgr/smp_bt.h>
 
+/* .. include_startingpoint_light_smp_dfu_rst_1 */
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 
@@ -141,6 +142,7 @@ int smp_service_adv_init(void)
 
 	return err;
 }
+/* .. include_endpoint_light_smp_dfu_rst_1 */
 
 int smp_dfu_init(void)
 {
