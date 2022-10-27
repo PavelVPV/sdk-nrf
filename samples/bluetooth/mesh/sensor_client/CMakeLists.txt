@@ -11,6 +11,7 @@ project(NONE)
 # NORDIC SDK APP START
 target_sources(app PRIVATE
 	src/main.c
+	src/thingy53.c
 	src/model_handler.c)
 target_include_directories(app PRIVATE include)
 # NORDIC SDK APP END
