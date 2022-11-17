@@ -49,15 +49,40 @@ You should see the device appear in the list of devices.
 Advertising SMP UUID
 ====================
 
-To make sure that your Bluetooth mesh device advertises the SMP service UUID, you can use the :ref:`bluetooth_mesh_light` sample where this is enabled through configuration overlay file :file:`overlay-dfu.conf`.
-Alternatively, do the following:
+##### VARIANT 1
 
-1. Configure the extended advertising API for your Bluetooth mesh sample by adding the following to the :file:`prj.conf` file::
+To make sure that your Bluetooth mesh device advertises the SMP service UUID, in addition to the instructions described in :ref:`FOTA over Bluetooth Low Energy<ug_nrf52_developing_ble_fota>`, do the following:
 
-    CONFIG_BT_EXT_ADV_MAX_ADV_SET=2 # 1 set for mesh, 1 set for advertising SMP server
-    CONFIG_BT_MAX_CONN=2 # 1 conn for GATT Proxy/PB-GATT, 1 conn for SMP
+1. Add the following code to your application:
 
-#. Use the code from the :ref:`zephyr:smp_svr_sample` sample to advertise SMP UUID.
+.. literalinclude:: ../../samples/bluetooth/light/src/smp_dfu.c
+   :language: c
+   :start-after: include_startingpoint_light_smp_dfu_rst_1
+   :end-before: include_endpoint_light_smp_dfu_rst_1
+
+#. Call `smp_service_adv_init` after Bluetooth is initialized.
+#. Increase number of Advertising Sets and maximum number of allowed connections in your application by adding the following to the :file:`prj.conf` file::
+
+    CONFIG_BT_EXT_ADV_MAX_ADV_SET=2 # 1 set for Bluetooth mesh, 1 set for advertising SMP service UUID
+    CONFIG_BT_MAX_CONN=2 # 1 connetion for GATT Proxy/PB-GATT, 1 connection for SMP
+
+
+##### VARIAN 2
+
+To make sure that your Bluetooth mesh device advertises the SMP service UUID, you can use the code from the :ref:`bluetooth_mesh_light` sample.
+To use the code from the :ref:`bluetooth_mesh_light` sample, do the following:
+
+1. Copy :file:`samples/bluetooth/mesh/light/overlay-dfu.conf` to the root folder of your application.
+#. Copy :file:`samples/bluetooth/light/src/smp_dfu.c` source file to the ``src`` folder of your application.
+#. Add `smp_dfu.c` to `CMakeLists.txt` of your application::
+
+    target_sources_ifdef(CONFIG_MCUMGR_SMP_BT app PRIVATE src/smp_dfu.c)
+
+#. When compiling your application, set :makevar:`OVERLAY_CONFIG` to :file:`overlay-dfu.conf`
+
+  .. code-block:: console
+
+     west build -b <BOARD> -p -- -DOVERLAY_CONFIG="overlay-dfu.conf"
 
 This will make the device discoverable by the `nRF Connect Device Manager`_ mobile app with the :guilabel:`Only devices advertising SMP UUID` filter enabled.
 Observe that the device appears in the list of devices in the mobile app.

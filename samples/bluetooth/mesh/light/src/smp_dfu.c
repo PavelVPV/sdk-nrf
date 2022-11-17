@@ -10,6 +10,7 @@
 #include <os_mgmt/os_mgmt.h>
 #include <zephyr/mgmt/mcumgr/smp_bt.h>
 
+/* .. include_startingpoint_light_smp_dfu_rst_1 */
 #include <zephyr/bluetooth/bluetooth.h>
 
 static struct bt_le_ext_adv *adv;
@@ -57,6 +58,7 @@ void smp_service_adv_init(void)
 		printk("Starting advertising of SMP service failed (err %d)\n", err);
 	}
 }
+/* .. include_endpoint_light_smp_dfu_rst_1 */
 
 void smp_dfu_init(void)
 {
