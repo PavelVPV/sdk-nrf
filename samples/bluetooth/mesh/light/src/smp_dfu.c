@@ -158,6 +158,7 @@ int smp_dfu_init(void)
 		return err;
 	}
 
+/* .. include_startingpoint_light_smp_dfu_rst_2 */
 	bt_conn_cb_register(&conn_callbacks);
 
 	/**
@@ -166,5 +167,6 @@ int smp_dfu_init(void)
 	 * the SMP service.
 	 */
 	err = smp_service_adv_init();
+/* .. include_endpoint_light_smp_dfu_rst_2 */
 	return err;
 }

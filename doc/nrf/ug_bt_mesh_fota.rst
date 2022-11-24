@@ -58,11 +58,14 @@ To make sure that your Bluetooth mesh device advertises the SMP service UUID, in
       :start-after: include_startingpoint_light_smp_dfu_rst_1
       :end-before: include_endpoint_light_smp_dfu_rst_1
 
-#. Call ``smp_service_adv_init`` after Bluetooth is initialized.
-#. Increase the number of advertising sets and the maximum number of allowed connections in your application by adding the following to the :file:`prj.conf` file::
+#. Register Bluetooth connection callbacks and call ``smp_service_adv_init`` after Bluetooth is initialized:
 
-    CONFIG_BT_EXT_ADV_MAX_ADV_SET=2 # 1 set for Bluetooth mesh, 1 set for advertising SMP service UUID
-    CONFIG_BT_MAX_CONN=2 # 1 connetion for GATT Proxy/PB-GATT, 1 connection for SMP
+   .. literalinclude:: ../../samples/bluetooth/mesh/light/src/smp_dfu.c
+      :language: c
+      :start-after: include_startingpoint_light_smp_dfu_rst_2
+      :end-before: include_endpoint_light_smp_dfu_rst_2
+
+#. Increase by one the number of advertising sets (see :kconfig:option:`CONFIG_BT_EXT_ADV_MAX_ADV_SET`), the maximum number of allowed connections (see :kconfig:option:`CONFIG_BT_MAX_CONN`) and the maximum number of local identities (see :kconfig:option:`CONFIG_BT_ID_MAX`) in the :file:`prj.conf` file of your application.
 
 This will make the device discoverable by the `nRF Connect Device Manager`_ mobile app with the :guilabel:`Only devices advertising SMP UUID` filter enabled.
 Observe that the device appears in the list of devices in the mobile app.
