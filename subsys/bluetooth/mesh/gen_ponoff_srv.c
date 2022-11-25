@@ -61,14 +61,11 @@ static int store_data(struct bt_mesh_ponoff_srv *srv,
 
 }
 
-static void store_timeout(struct k_work *work)
+static void store_timeout(struct bt_mesh_model *mod)
 {
 	int err;
 
-	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
-	struct bt_mesh_ponoff_srv *srv = CONTAINER_OF(
-		dwork, struct bt_mesh_ponoff_srv, store_timer);
-
+	struct bt_mesh_ponoff_srv *srv = mod->user_data;
 	struct bt_mesh_onoff_status onoff_status = {0};
 
 	if (!bt_mesh_model_is_extended(srv->ponoff_setup_model)) {
@@ -86,10 +83,7 @@ static void store_timeout(struct k_work *work)
 static void store_state(struct bt_mesh_ponoff_srv *srv)
 {
 #if CONFIG_BT_SETTINGS
-	k_work_schedule(
-		&srv->store_timer,
-		K_SECONDS(CONFIG_BT_MESH_MODEL_SRV_STORE_TIMEOUT));
-
+	bt_mesh_model_data_store_schedule(srv->ponoff_model);
 #endif
 }
 
@@ -295,10 +289,6 @@ static int bt_mesh_ponoff_srv_init(struct bt_mesh_model *model)
 	net_buf_simple_init_with_data(&srv->pub_buf, srv->pub_data,
 				      sizeof(srv->pub_data));
 
-#if CONFIG_BT_SETTINGS
-	k_work_init_delayable(&srv->store_timer, store_timeout);
-#endif
-
 	return bt_mesh_model_extend(model, srv->onoff.model);
 }
 
@@ -371,6 +361,7 @@ const struct bt_mesh_model_cb _bt_mesh_ponoff_srv_cb = {
 	.reset = bt_mesh_ponoff_srv_reset,
 #ifdef CONFIG_BT_SETTINGS
 	.settings_set = bt_mesh_ponoff_srv_settings_set,
+	.pending_store = store_timeout,
 #endif
 };
 
