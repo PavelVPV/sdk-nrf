@@ -545,8 +545,7 @@ static enum bt_mesh_scene_status scene_store(struct bt_mesh_scene_srv *srv,
 		srv->all[srv->count++] = scene;
 	}
 
-	scene_store_mod(srv, scene, false);
-	scene_store_mod(srv, scene, true);
+	bt_mesh_model_data_store_schedule(srv->model);
 
 	srv->prev = scene;
 	srv->next = BT_MESH_SCENE_NONE;
@@ -794,6 +793,14 @@ static int scene_srv_set(struct bt_mesh_model *model, const char *path,
 	return 0;
 }
 
+static void scene_srv_pending_store(struct bt_mesh_model *model)
+{
+	struct bt_mesh_scene_srv *srv = model->user_data;
+
+	scene_store_mod(srv, srv->prev, false);
+	scene_store_mod(srv, srv->prev, true);
+}
+
 static void scene_srv_reset(struct bt_mesh_model *model)
 {
 	struct bt_mesh_scene_srv *srv = model->user_data;
@@ -814,6 +821,7 @@ static void scene_srv_reset(struct bt_mesh_model *model)
 const struct bt_mesh_model_cb _bt_mesh_scene_srv_cb = {
 	.init = scene_srv_init,
 	.settings_set = scene_srv_set,
+	.pending_store = scene_srv_pending_store,
 	.reset = scene_srv_reset,
 };
 
