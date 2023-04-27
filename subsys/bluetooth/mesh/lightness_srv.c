@@ -30,11 +30,9 @@ struct bt_mesh_lightness_srv_settings_data {
 static const char *const repr_str[] = { "Actual", "Linear" };
 
 #if CONFIG_BT_SETTINGS
-static void store_timeout(struct k_work *work)
+static void lightness_srv_pending_store(struct bt_mesh_model *model)
 {
-	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
-	struct bt_mesh_lightness_srv *srv = CONTAINER_OF(
-		dwork, struct bt_mesh_lightness_srv, store_timer);
+	struct bt_mesh_lightness_srv *srv = model->user_data;
 
 	struct bt_mesh_lightness_srv_settings_data data = {
 		.default_light = srv->default_light,
@@ -62,9 +60,7 @@ static void store_timeout(struct k_work *work)
 static void store_state(struct bt_mesh_lightness_srv *srv)
 {
 #if CONFIG_BT_SETTINGS
-	k_work_schedule(
-		&srv->store_timer,
-		K_SECONDS(CONFIG_BT_MESH_MODEL_SRV_STORE_TIMEOUT));
+	bt_mesh_model_data_store_schedule(srv->lightness_model);
 #endif
 }
 
@@ -857,8 +853,6 @@ static int bt_mesh_lightness_srv_init(struct bt_mesh_model *model)
 				      sizeof(srv->pub_data));
 
 #if CONFIG_BT_SETTINGS
-	k_work_init_delayable(&srv->store_timer, store_timeout);
-
 #if IS_ENABLED(CONFIG_EMDS)
 	srv->emds_entry.entry.id = EMDS_MODEL_ID(model);
 	srv->emds_entry.entry.data = (uint8_t *)&srv->transient;
@@ -972,6 +966,7 @@ const struct bt_mesh_model_cb _bt_mesh_lightness_srv_cb = {
 #ifdef CONFIG_BT_SETTINGS
 	.settings_set = bt_mesh_lightness_srv_settings_set,
 	.start = bt_mesh_lightness_srv_start,
+	.pending_store = lightness_srv_pending_store,
 #endif
 };
 
