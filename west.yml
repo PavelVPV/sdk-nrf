@@ -37,6 +37,8 @@ manifest:
       url-base: https://github.com/ant-nrfconnect
     - name: babblesim
       url-base: https://github.com/BabbleSim
+    - name: pavelvpv
+      url-base: https://github.com/PavelVPV
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -59,7 +61,8 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: 74c7bca86e6a7d590333681eef90e159d79bcfe8
+      remote: pavelvpv
+      revision: test_mesh_settings_thread_changes
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
