@@ -37,6 +37,8 @@ manifest:
       url-base: https://github.com/ant-nrfconnect
     - name: babblesim
       url-base: https://github.com/BabbleSim
+    - name: pavelvpv
+      url-base: https://github.com/pavelvpv
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -129,9 +131,10 @@ manifest:
       repo-path: sdk-mbedtls
       revision: v3.3.0-ncs1-rc1
     - name: nrfxlib
+      remote: pavelvpv
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: 91f0fea5b4b9cc10d1b0419691db6e92d1df7ec4
+      revision: test_mesh_with_sdc_fix
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
