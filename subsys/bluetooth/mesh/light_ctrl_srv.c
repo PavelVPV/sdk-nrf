@@ -56,11 +56,11 @@ static void restart_timer(struct bt_mesh_light_ctrl_srv *srv, uint32_t delay)
 	k_work_reschedule(&srv->timer, K_MSEC(delay));
 }
 
-static void reg_start(struct bt_mesh_light_ctrl_srv *srv)
+static void reg_start(struct bt_mesh_light_ctrl_srv *srv, uint16_t lvl)
 {
 #if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
 	if (srv->reg && srv->reg->start) {
-		srv->reg->start(srv->reg);
+		srv->reg->start(srv->reg, (float)lvl);
 	}
 #endif
 }
@@ -976,7 +976,7 @@ static int handle_sensor_status(struct bt_mesh_model *model, struct bt_mesh_msg_
 			srv->reg->measured = sensor_to_float(&value);
 			srv->amb_light_level_timestamp = k_uptime_get();
 			if (!atomic_test_and_set_bit(&srv->flags, FLAG_AMBIENT_LUXLEVEL_SET)) {
-				reg_start(srv);
+				reg_start(srv, to_linear(light_get(srv)));
 			}
 			continue;
 		}
@@ -1641,7 +1641,6 @@ static int light_ctrl_srv_start(struct bt_mesh_model *model)
 		break;
 	case BT_MESH_ON_POWER_UP_RESTORE:
 		if (is_enabled(srv)) {
-			reg_start(srv);
 			if (atomic_test_bit(&srv->flags, FLAG_ON)) {
 				turn_on(srv, NULL, true);
 			} else {

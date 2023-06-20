@@ -47,7 +47,7 @@ struct bt_mesh_light_ctrl_reg_spec {
 
 /** @cond INTERNAL_HIDDEN */
 void bt_mesh_light_ctrl_reg_spec_init(struct bt_mesh_light_ctrl_reg *reg);
-void bt_mesh_light_ctrl_reg_spec_start(struct bt_mesh_light_ctrl_reg *reg);
+void bt_mesh_light_ctrl_reg_spec_start(struct bt_mesh_light_ctrl_reg *reg, float input);
 void bt_mesh_light_ctrl_reg_spec_stop(struct bt_mesh_light_ctrl_reg *reg);
 /** @endcond */
 

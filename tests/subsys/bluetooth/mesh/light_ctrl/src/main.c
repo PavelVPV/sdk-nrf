@@ -565,7 +565,7 @@ ZTEST(light_ctrl_test, test_fsm_no_change_by_light_onoff)
 	expect_ctrl_enable();
 	bt_mesh_light_ctrl_srv_enable(&light_ctrl_srv);
 	/* Start regulator manually to allow the test to check operation */
-	light_ctrl_srv.reg->start(light_ctrl_srv.reg);
+	light_ctrl_srv.reg->start(light_ctrl_srv.reg, 0);
 
 	/* Wait for transition to completed. */
 	expected_flags = expected_flags & ~BIT(FLAG_TRANSITION);
@@ -1016,8 +1016,10 @@ ZTEST(light_ctrl_pi_reg_test, test_target_luxlevel_for_pi_regulator)
 	start_reg(CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_LUX_ON -
 		  REG_ACCURACY(CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG_LUX_ON) - 1);
 	trigger_pi_reg(10, true);
-	expected_lightness = SUMMATION_STEP(light_ctrl_srv.reg->cfg.ki.up) * 10 +
-			     light_ctrl_srv.reg->cfg.kp.up;
+	/* Add start value for internal sum of the regulator is the current lightness output value. */
+	expected_lightness = light_ctrl_srv.cfg.light[LIGHT_CTRL_STATE_ON];
+	expected_lightness += SUMMATION_STEP(light_ctrl_srv.reg->cfg.ki.up) * 10 +
+			      light_ctrl_srv.reg->cfg.kp.up;
 	zassert_equal(pi_reg_test_ctx.lightness, expected_lightness, "Expected: %d, got: %d",
 		      expected_lightness, pi_reg_test_ctx.lightness);
 

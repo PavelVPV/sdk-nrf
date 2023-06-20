@@ -54,11 +54,12 @@ static void reg_step(struct k_work *work)
 	spec_reg->reg.updated(&spec_reg->reg, output);
 }
 
-void bt_mesh_light_ctrl_reg_spec_start(struct bt_mesh_light_ctrl_reg *reg)
+void bt_mesh_light_ctrl_reg_spec_start(struct bt_mesh_light_ctrl_reg *reg, float input)
 {
 	struct bt_mesh_light_ctrl_reg_spec *spec_reg = CONTAINER_OF(
 		reg, struct bt_mesh_light_ctrl_reg_spec, reg);
 	spec_reg->enabled = true;
+	spec_reg->i = input;
 	k_work_schedule(&spec_reg->timer, K_MSEC(REG_INT));
 }
 

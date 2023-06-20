@@ -42,7 +42,7 @@ struct bt_mesh_light_ctrl_reg {
 	/** Initialize the regulator. */
 	void (*init)(struct bt_mesh_light_ctrl_reg *reg);
 	/** Start the regulator. */
-	void (*start)(struct bt_mesh_light_ctrl_reg *reg);
+	void (*start)(struct bt_mesh_light_ctrl_reg *reg, float input);
 	/** Stop the regulator. */
 	void (*stop)(struct bt_mesh_light_ctrl_reg *reg);
 	/** Regulator configuration. */
