@@ -369,6 +369,13 @@ static void reg_updated(struct bt_mesh_light_ctrl_reg *reg, float value)
 	 * server.
 	 */
 	uint16_t lvl = to_linear(light_get(srv));
+	int64_t timestamp_temp;
+
+	timestamp_temp = srv->amb_light_level_timestamp;
+	if (k_uptime_delta(&timestamp_temp) >=
+	    CONFIG_BT_MESH_LIGHT_CTRL_AMB_LIGHT_LEVEL_TIMEOUT * MSEC_PER_SEC) {
+		srv->reg->measured = 0;
+	}
 
 	/* Output value is max out of regulator and configured level. */
 	if (output <= lvl) {
@@ -967,6 +974,7 @@ static int handle_sensor_status(struct bt_mesh_model *model, struct bt_mesh_msg_
 #if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
 		if (id == BT_MESH_PROP_ID_PRESENT_AMB_LIGHT_LEVEL && srv->reg) {
 			srv->reg->measured = sensor_to_float(&value);
+			srv->amb_light_level_timestamp = k_uptime_get();
 			if (!atomic_test_and_set_bit(&srv->flags, FLAG_AMBIENT_LUXLEVEL_SET)) {
 				reg_start(srv);
 			}
