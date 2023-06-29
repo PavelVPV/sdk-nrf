@@ -15,7 +15,7 @@
 #include "sensor.h"
 #include "model_utils.h"
 
-#define LOG_LEVEL CONFIG_BT_MESH_MODEL_LOG_LEVEL
+#define LOG_LEVEL 4//CONFIG_BT_MESH_MODEL_LOG_LEVEL
 #include "zephyr/logging/log.h"
 LOG_MODULE_REGISTER(bt_mesh_light_ctrl_srv);
 
@@ -55,25 +55,6 @@ static void restart_timer(struct bt_mesh_light_ctrl_srv *srv, uint32_t delay)
 {
 	k_work_reschedule(&srv->timer, K_MSEC(delay));
 }
-
-static void reg_start(struct bt_mesh_light_ctrl_srv *srv)
-{
-#if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
-	if (srv->reg && srv->reg->start) {
-		srv->reg->start(srv->reg);
-	}
-#endif
-}
-
-static void reg_stop(struct bt_mesh_light_ctrl_srv *srv)
-{
-#if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
-	if (srv->reg && srv->reg->stop) {
-		srv->reg->stop(srv->reg);
-	}
-#endif
-}
-
 
 static inline uint32_t to_centi_lux(const struct sensor_value *lux)
 {
@@ -317,6 +298,7 @@ static uint16_t light_get(struct bt_mesh_light_ctrl_srv *srv)
 	uint16_t end = srv->cfg.light[srv->state];
 
 	/* Linear interpolation: */
+	LOG_WRN("light_get: %d", start + ((end - start) * curr) / srv->fade.duration);
 	return start + ((end - start) * curr) / srv->fade.duration;
 }
 
@@ -537,6 +519,24 @@ static void ctrl_enable(struct bt_mesh_light_ctrl_srv *srv)
 	LOG_DBG("Enable Light Control");
 	transition_start(srv, LIGHT_CTRL_STATE_STANDBY, 0);
 	/* Regulator remains stopped until fresh LuxLevel is received. */
+}
+
+static void reg_start(struct bt_mesh_light_ctrl_srv *srv)
+{
+#if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
+	if (srv->reg && srv->reg->start) {
+		srv->reg->start(srv->reg, to_linear(light_get(srv)));
+	}
+#endif
+}
+
+static void reg_stop(struct bt_mesh_light_ctrl_srv *srv)
+{
+#if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
+	if (srv->reg && srv->reg->stop) {
+		srv->reg->stop(srv->reg);
+	}
+#endif
 }
 
 static void ctrl_disable(struct bt_mesh_light_ctrl_srv *srv)
