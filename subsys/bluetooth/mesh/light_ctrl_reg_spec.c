@@ -101,7 +101,7 @@ void bt_mesh_light_ctrl_reg_spec_start(struct bt_mesh_light_ctrl_reg *reg, uint1
 		reg, struct bt_mesh_light_ctrl_reg_spec, reg);
 	spec_reg->enabled = true;
 	k_work_schedule(&spec_reg->timer, K_MSEC(REG_INT));
-	internal_sum_recover(spec_reg, lightness);
+//	internal_sum_recover(spec_reg, lightness);
 }
 
 void bt_mesh_light_ctrl_reg_spec_stop(struct bt_mesh_light_ctrl_reg *reg)
