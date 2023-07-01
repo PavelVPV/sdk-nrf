@@ -12,7 +12,9 @@ zephyr_sources_ifdef(CONFIG_BT_ENOCEAN enocean.c)
 
 add_subdirectory_ifdef(CONFIG_BT_ADV_PROV adv_prov)
 add_subdirectory_ifdef(CONFIG_BT_LL_SOFTDEVICE controller)
-add_subdirectory_ifdef(CONFIG_BT_MESH mesh)
+if (CONFIG_BT_MESH AND CONFIG_BT_HCI_HOST)
+	add_subdirectory(mesh)
+endif ()
 
 add_subdirectory_ifdef(CONFIG_BT_NRF_SERVICES services)
 

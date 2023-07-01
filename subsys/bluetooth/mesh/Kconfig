@@ -4,7 +4,14 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-if BT_MESH
+# Set the optimal advertiser configuration to improve performance of the Relay, GATT and Friend
+# features.
+#
+# <num of adv sets> = 1 (local msgs) + 2 (relay msgs) + 1 (GATT advs) + 1 (Friend msgs)
+config BT_EXT_ADV_MAX_ADV_SET
+	default 5 if BT_MESH # Not BT_MESH_ADV_EXT as we don't recommend Legacy adv in nRF Connect SDK
+
+if BT_MESH && BT_HCI_HOST
 
 menu "Bluetooth mesh"
 
@@ -16,13 +23,6 @@ config BT_MESH_SETTINGS_WORKQ_STACK_SIZE
 endif
 
 if BT_MESH_ADV_EXT
-
-# Set the optimal advertiser configuration to improve performance of the Relay, GATT and Friend
-# features.
-#
-# <num of adv sets> = 1 (local msgs) + 2 (relay msgs) + 1 (GATT advs) + 1 (Friend msgs)
-config BT_EXT_ADV_MAX_ADV_SET
-	default 5
 
 config BT_MESH_RELAY_ADV_SETS
 	depends on BT_MESH_RELAY
@@ -116,4 +116,4 @@ rsource "Kconfig.rpl"
 
 endmenu
 
-endif # BT_MESH
+endif # BT_MESH && BT_HCI_HOST
