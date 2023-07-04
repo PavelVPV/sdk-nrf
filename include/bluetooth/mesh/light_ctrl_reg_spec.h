@@ -43,6 +43,8 @@ struct bt_mesh_light_ctrl_reg_spec {
 	float i;
 	/** Regulator enabled flag. */
 	bool enabled;
+	/* If true, internal integral sum can be negative until it becomes positive. */
+	bool neg;
 };
 
 /** @cond INTERNAL_HIDDEN */

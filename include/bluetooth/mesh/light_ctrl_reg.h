@@ -56,6 +56,7 @@ struct bt_mesh_light_ctrl_reg {
 /** @cond INTERNAL_HIDDEN */
 	float target;
 	float prev_target;
+	uint16_t lightness_target;
 	int32_t transition_time;
 	int64_t transition_start;
 /** @endcond */
@@ -76,6 +77,7 @@ struct bt_mesh_light_ctrl_reg {
  */
 void bt_mesh_light_ctrl_reg_target_set(struct bt_mesh_light_ctrl_reg *reg,
 				       float target,
+				       uint16_t lightness_target,
 				       int32_t transition_time);
 
 /** @brief Get the target lightness for the regulator.

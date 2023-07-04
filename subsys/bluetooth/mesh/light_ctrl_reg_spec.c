@@ -69,7 +69,16 @@ static void reg_step(struct k_work *work)
 	reg_params = reg_params_get(spec_reg);
 
 	spec_reg->i += I_VAL(reg_params.input, reg_params.ki);
-	spec_reg->i = CLAMP(spec_reg->i, 0, UINT16_MAX);
+
+	LOG_WRN("reg int sum: %f", spec_reg->i);
+
+	if (spec_reg->i >= 0) {
+		spec_reg->neg = false;
+	}
+
+	if (!spec_reg->neg) {
+		spec_reg->i = CLAMP(spec_reg->i, 0, UINT16_MAX);
+	}
 
 	float p = reg_params.input * reg_params.kp;
 	float output = spec_reg->i + p;
@@ -87,12 +96,19 @@ static void internal_sum_recover(struct bt_mesh_light_ctrl_reg_spec *spec_reg, u
 	i_val = I_VAL(reg_params.input, reg_params.ki);
 	p_val = reg_params.input * reg_params.kp;
 
+	int n = spec_reg->reg.transition_time / REG_INT;
+	spec_reg->i = (int)spec_reg->reg.lightness_target - n * i_val - i_val - p_val;
+//	spec_reg->i = MIN(spec_reg->i, 0);
+
 	/* L = In + U*Kp => In = L - U*Kp;
 	 * In = In-1 + U*T_Ki => In - U*T*Ki;
 	 * In-1 = L - U*Kp - U*T*Ki.
 	 */
-	spec_reg->i = lightness - p_val - i_val;
-	LOG_ERR("lightness: %d, recaled val: %d", lightness, spec_reg->i);
+//	spec_reg->i = lightness - p_val;// - i_val;
+	spec_reg->neg = true;
+
+	LOG_ERR("lightness: %u, recaled val: %f, i:%f,p:%f, n:%d, tt:%d,tar:%d", lightness, spec_reg->i, i_val, p_val, n,
+		spec_reg->reg.transition_time, spec_reg->reg.lightness_target);
 }
 
 void bt_mesh_light_ctrl_reg_spec_start(struct bt_mesh_light_ctrl_reg *reg, uint16_t lightness)

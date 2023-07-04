@@ -8,10 +8,12 @@
 
 void bt_mesh_light_ctrl_reg_target_set(struct bt_mesh_light_ctrl_reg *reg,
 				       float value,
+				       uint16_t lightness_target,
 				       int32_t transition_time)
 {
 	reg->prev_target = reg->target;
 	reg->target = value;
+	reg->lightness_target = lightness_target;
 	if (reg->target == reg->prev_target) {
 		reg->transition_time = 0;
 		return;
@@ -22,16 +24,17 @@ void bt_mesh_light_ctrl_reg_target_set(struct bt_mesh_light_ctrl_reg *reg,
 
 float bt_mesh_light_ctrl_reg_target_get(struct bt_mesh_light_ctrl_reg *reg)
 {
-	if (reg->transition_time == 0) {
-		return reg->target;
-	}
+//	if (reg->transition_time == 0) {
+//		return reg->target;
+//	}
 
 	int32_t elapsed = k_uptime_get() - reg->transition_start;
 
-	if (elapsed >= reg->transition_time) {
-		reg->transition_time = 0;
+	if (elapsed >= reg->transition_time || reg->transition_time == 0) {
+//		reg->transition_time = 0;
 		return reg->target;
 	}
+
 	return reg->prev_target +
 		(elapsed * (reg->target - reg->prev_target)) / reg->transition_time;
 }

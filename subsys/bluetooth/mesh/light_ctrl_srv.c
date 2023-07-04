@@ -53,6 +53,7 @@ struct setup_srv_storage_data {
 
 static void restart_timer(struct bt_mesh_light_ctrl_srv *srv, uint32_t delay)
 {
+	LOG_WRN("restart_timer: %d", delay);
 	k_work_reschedule(&srv->timer, K_MSEC(delay));
 }
 
@@ -360,6 +361,8 @@ static void reg_updated(struct bt_mesh_light_ctrl_reg *reg, float value)
 	}
 #endif
 
+	LOG_WRN("reg_updated: reg: %d/ fsm: %d", output, lvl);
+
 	/* Output value is max out of regulator and configured level. */
 	if (output <= lvl) {
 		output = lvl;
@@ -410,10 +413,12 @@ static void transition_start(struct bt_mesh_light_ctrl_srv *srv,
 		light_set(srv, srv->cfg.light[state], fade_time);
 	}
 	restart_timer(srv, fade_time);
+	LOG_WRN("transition_start");
 #if CONFIG_BT_MESH_LIGHT_CTRL_SRV_REG
 	if (srv->reg) {
+		LOG_WRN("target_set fade_time: %d, target: %f", fade_time, lux_getf(srv));
 		atomic_set_bit(&srv->flags, FLAG_REGULATOR);
-		bt_mesh_light_ctrl_reg_target_set(srv->reg, lux_getf(srv), fade_time);
+		bt_mesh_light_ctrl_reg_target_set(srv->reg, lux_getf(srv), to_linear(srv->cfg.light[state]), fade_time);
 	}
 #endif
 }
@@ -589,7 +594,7 @@ static void timeout(struct k_work *work)
 	 * of the transition:
 	 */
 	if (atomic_test_and_clear_bit(&srv->flags, FLAG_TRANSITION)) {
-		LOG_DBG("Transition complete");
+		LOG_DBG("Transition complete. Current state: %d", srv->state);
 
 		/* If the fade wasn't instant, we've already published the
 		 * steady state in the state change function.
