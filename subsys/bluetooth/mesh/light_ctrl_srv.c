@@ -357,6 +357,7 @@ static void reg_updated(struct bt_mesh_light_ctrl_reg *reg, float value)
 	timestamp_temp = srv->amb_light_level_timestamp;
 	if (k_uptime_delta(&timestamp_temp) >=
 	    CONFIG_BT_MESH_LIGHT_CTRL_AMB_LIGHT_LEVEL_TIMEOUT * MSEC_PER_SEC) {
+		LOG_ERR("Dropping measured value");
 		srv->reg->measured = 0;
 	}
 #endif
