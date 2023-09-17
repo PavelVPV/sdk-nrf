@@ -114,12 +114,6 @@ static int dfu_meta_check(struct bt_mesh_dfu_srv *srv,
 
 	printk("\tUser data length: %u\n", metadata.user_data_len);
 
-	img_effect = BT_MESH_DFU_EFFECT_UNPROV;
-	printk("Metadata check succeeded, effect: %d\n", img_effect);
-	*effect = img_effect;
-
-	return 0;
-
 	if (!is_firmware_newer((struct mcuboot_img_sem_ver *) &metadata.fw_ver, img_ver)) {
 		printk("New firmware version is older\n");
 		return -EINVAL;
@@ -170,8 +164,7 @@ static int dfu_start(struct bt_mesh_dfu_srv *srv,
 
 	*io = &blob_flash_stream->io;
 
-//	return 0;
-	return -EALREADY;
+	return 0;
 }
 
 static void dfu_end(struct bt_mesh_dfu_srv *srv, const struct bt_mesh_dfu_img *img, bool success)
@@ -215,7 +208,7 @@ static int dfu_apply(struct bt_mesh_dfu_srv *srv, const struct bt_mesh_dfu_img *
 
 	printk("Applying the new firmware\n");
 
-//	boot_request_upgrade(BOOT_UPGRADE_TEST);
+	boot_request_upgrade(BOOT_UPGRADE_TEST);
 
 	if (img_effect == BT_MESH_DFU_EFFECT_UNPROV) {
 		bt_mesh_reset();
