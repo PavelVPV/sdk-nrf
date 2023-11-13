@@ -1,0 +1,11 @@
+external_storage:
+  affiliation: [disk]
+  extra_params: {
+    disk_name: "NAND",
+    disk_cache_size: 4096,
+    disk_sector_size: 512,
+    disk_read_only: 0
+  }
+  address: 0
+  region: external_flash
+  size: 0x20000

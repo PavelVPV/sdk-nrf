@@ -15,7 +15,7 @@ extern "C" {
 
 extern struct bt_mesh_dfd_srv dfd_srv;
 
-void dfu_distributor_init(struct bt_mesh_blob_io_flash *flash_stream);
+void dfu_distributor_init(struct bt_mesh_blob_io *flash_stream);
 
 #ifdef __cplusplus
 }

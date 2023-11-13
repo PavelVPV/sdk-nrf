@@ -6,7 +6,7 @@
 
 #include "dfu_dist.h"
 
-static struct bt_mesh_blob_io_flash *blob_flash_stream;
+static struct bt_mesh_blob_io *blob_flash_stream;
 
 static void slot_info_print(const struct bt_mesh_dfu_slot *slot, const uint8_t *idx)
 {
@@ -37,7 +37,7 @@ static int dfd_srv_recv(struct bt_mesh_dfd_srv *srv,
 	printk("Uploading new firmware image to the distributor.\n");
 	slot_info_print(slot, NULL);
 
-	*io = &blob_flash_stream->io;
+	*io = blob_flash_stream;
 
 	return 0;
 }
@@ -56,7 +56,7 @@ static int dfd_srv_send(struct bt_mesh_dfd_srv *srv,
 	printk("Starting the firmware distribution.\n");
 	slot_info_print(slot, NULL);
 
-	*io = &blob_flash_stream->io;
+	*io = blob_flash_stream;
 
 	return 0;
 }
@@ -99,7 +99,7 @@ static struct bt_mesh_dfd_srv_cb dfd_srv_cb = {
 
 struct bt_mesh_dfd_srv dfd_srv = BT_MESH_DFD_SRV_INIT(&dfd_srv_cb);
 
-void dfu_distributor_init(struct bt_mesh_blob_io_flash *flash_stream)
+void dfu_distributor_init(struct bt_mesh_blob_io *flash_stream)
 {
 	blob_flash_stream = flash_stream;
 }

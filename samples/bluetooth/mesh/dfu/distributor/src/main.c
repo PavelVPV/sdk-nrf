@@ -17,6 +17,7 @@
 #include "smp_bt.h"
 #include "dfu_dist.h"
 #include "dfu_target.h"
+#include "usb_mass.h"
 
 static struct bt_mesh_blob_io_flash blob_flash_stream;
 
@@ -142,7 +143,15 @@ int main(void)
 	}
 
 	k_work_init_delayable(&attention_blink_work, attention_blink);
-	dfu_distributor_init(&blob_flash_stream);
+
+	struct bt_mesh_blob_io *usb_mass_blob_io;
+	err = usb_flash_stream_init(&usb_mass_blob_io);
+	if (err) {
+		printk("Failed to init USB Mass BLOB IO: %d\n", err);
+		return 1;
+	}
+	dfu_distributor_init(usb_mass_blob_io);
+
 	dfu_target_init(&blob_flash_stream);
 
 	err = bt_enable(bt_ready);
