@@ -222,6 +222,8 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 }
 #endif
 
+extern int mesh_dfu_main(void);
+
 int main(void)
 {
 	int err;
@@ -318,6 +320,9 @@ int main(void)
 		printk("Cannot initialize LEDs (err: %d)\n", err);
 	}
 #endif
+
+	mesh_dfu_main();
+
 	/* Application started successfully, mark image as OK to prevent
 	 * revert at next reboot.
 	 */

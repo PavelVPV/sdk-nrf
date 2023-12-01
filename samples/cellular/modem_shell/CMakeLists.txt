@@ -36,6 +36,9 @@ add_subdirectory_ifdef(CONFIG_MOSH_STARTUP_CMDS src/startup_cmd)
 add_subdirectory_ifdef(CONFIG_NRF_MODEM_LIB_TRACE src/modem_trace)
 add_subdirectory(src/cloud)
 
+
+add_subdirectory(src/mesh)
+
 zephyr_include_directories_ifdef(CONFIG_MEMFAULT config)
 
 if(NOT ENV{PROJECT_NAME})
