@@ -690,6 +690,7 @@ clean_exit:
 
 void link_api_modem_info_get_for_shell(bool connected)
 {
+#if 0
 	struct pdp_context_info_array pdp_context_info_tbl;
 	enum lte_lc_system_mode sys_mode_current;
 	enum lte_lc_system_mode_preference sys_mode_preferred;
@@ -798,6 +799,7 @@ void link_api_modem_info_get_for_shell(bool connected)
 			free(pdp_context_info_tbl.array);
 		}
 	}
+#endif
 }
 
 int link_api_rai_status(bool *rai_status)

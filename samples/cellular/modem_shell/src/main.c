@@ -222,7 +222,16 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 }
 #endif
 
-extern int mesh_dfu_main(void);
+extern int mesh_dfu_main(void (*bt_ready)(void));
+extern int mesh_dfu_start(void);
+
+static K_SEM_DEFINE(bt_ready_sem, 0, 1);
+
+static void bt_ready(void)
+{
+	printk("bt_ready\n");
+	k_sem_give(&bt_ready_sem);
+}
 
 int main(void)
 {
@@ -300,6 +309,11 @@ int main(void)
 #endif
 #if defined(CONFIG_LTE_LINK_CONTROL) && defined(CONFIG_MOSH_LINK)
 	link_init();
+#else
+	err = lte_lc_connect();
+	if (err) {
+		printk("Could not connect: %d\n", err);
+	}
 #endif
 
 #if defined(CONFIG_MODEM_INFO)
@@ -321,7 +335,7 @@ int main(void)
 	}
 #endif
 
-	mesh_dfu_main();
+	mesh_dfu_main(bt_ready);
 
 	/* Application started successfully, mark image as OK to prevent
 	 * revert at next reboot.
@@ -347,6 +361,21 @@ int main(void)
 		at_cmd_mode_start(mosh_shell);
 	}
 #endif
+
+	err = k_sem_take(&bt_ready_sem, K_FOREVER);
+	if (err) {
+		printk("bt_ready_sem err: %d", err);
+	}
+
+	printk("loading settings'n");
+
+	err = settings_load();
+	if (err) {
+		mosh_error("Cannot load settings %d", err);
+		return err;
+	}
+
+	mesh_dfu_start();
 
 	return 0;
 }

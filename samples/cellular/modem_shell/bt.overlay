@@ -52,3 +52,8 @@
 		};
 	};
 };
+
+&nrf52840_reset {
+ status = "okay";
+ gpios = <&interface_to_nrf52840 9 (1 << 0)>;
+};

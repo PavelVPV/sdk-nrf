@@ -112,6 +112,7 @@ static void link_api_activate_mosh_contexts(
 	struct pdn_activation_status_info pdn_act_status_arr[], int size)
 {
 	int i, esm, ret;
+#if 0
 
 	/* Check that all context created by mosh link connect are active and if not,
 	 * then activate.
@@ -129,6 +130,7 @@ static void link_api_activate_mosh_contexts(
 			}
 		}
 	}
+#endif
 }
 
 /* ****************************************************************************/
@@ -250,7 +252,7 @@ void link_init(void)
 
 	link_sett_init();
 
-	link_shell_pdn_init();
+//	link_shell_pdn_init();
 
 	lte_lc_register_handler(link_ind_handler);
 	(void)lte_lc_modem_events_enable();
@@ -369,11 +371,11 @@ void link_ind_handler(const struct lte_lc_evt *const evt)
 		}
 	} break;
 	case LTE_LC_EVT_MODEM_SLEEP_EXIT_PRE_WARNING:
-		link_shell_print_modem_sleep_notif(evt);
+//		link_shell_print_modem_sleep_notif(evt);
 		break;
 	case LTE_LC_EVT_MODEM_SLEEP_ENTER:
 	case LTE_LC_EVT_MODEM_SLEEP_EXIT:
-		link_shell_print_modem_sleep_notif(evt);
+//		link_shell_print_modem_sleep_notif(evt);
 
 		if (uart_shell_disable_during_sleep_requested) {
 			uart_toggle_power_state_at_event(evt);
@@ -386,12 +388,12 @@ void link_ind_handler(const struct lte_lc_evt *const evt)
 		 *  and network availability. This event will then indicate which
 		 *  LTE mode is currently used by the modem.
 		 */
-		mosh_print(
-			"Currently active system mode: %s",
-			link_shell_sysmode_currently_active_to_string(evt->lte_mode, snum));
+//		mosh_print(
+//			"Currently active system mode: %s",
+//			link_shell_sysmode_currently_active_to_string(evt->lte_mode, snum));
 		break;
 	case LTE_LC_EVT_NW_REG_STATUS:
-		link_shell_print_reg_status(evt->nw_reg_status);
+//		link_shell_print_reg_status(evt->nw_reg_status);
 
 		if (evt->nw_reg_status == LTE_LC_NW_REG_REGISTERED_HOME ||
 		    evt->nw_reg_status == LTE_LC_NW_REG_REGISTERED_ROAMING) {
@@ -449,7 +451,7 @@ void link_ind_handler(const struct lte_lc_evt *const evt)
 		break;
 	}
 	case LTE_LC_EVT_MODEM_EVENT:
-		link_shell_print_modem_domain_event(evt->modem_evt);
+//		link_shell_print_modem_domain_event(evt->modem_evt);
 		break;
 	default:
 		break;

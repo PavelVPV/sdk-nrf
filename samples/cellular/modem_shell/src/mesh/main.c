@@ -89,6 +89,8 @@ static const struct bt_mesh_comp comp = {
 	.elem_count = ARRAY_SIZE(elements),
 };
 
+static void (*cb)(void);
+
 static void bt_ready(int err)
 {
 	if (err) {
@@ -106,18 +108,16 @@ static void bt_ready(int err)
 		return;
 	}
 
-	if (IS_ENABLED(CONFIG_SETTINGS)) {
-		settings_load();
-	}
-
-	bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
-
 	printk("Mesh initialized\n");
+
+	cb();
 }
 
-int mesh_dfu_main(void)
+int mesh_dfu_main(void (*bt_ready_cb)(void))
 {
 	int err;
+
+	cb = bt_ready_cb;
 
 	printk("Initializing...\n");
 
@@ -136,5 +136,11 @@ int mesh_dfu_main(void)
 		printk("Bluetooth init failed (err %d)\n", err);
 		return 2;
 	}
+	return 0;
+}
+
+int mesh_dfu_start(void)
+{
+	//bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
 	return 0;
 }

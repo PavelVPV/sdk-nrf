@@ -201,7 +201,6 @@ int startup_cmd_settings_init(void)
 
 	memset(&startup_cmd_data, 0, sizeof(startup_cmd_data));
 	startup_cmd_data.starttime = STARTUP_CMD_STARTTIME_NOT_SET;
-
 	err = settings_subsys_init();
 	if (err) {
 		mosh_error("Failed to initialize settings subsystem, error: %d", err);
@@ -212,10 +211,12 @@ int startup_cmd_settings_init(void)
 		mosh_error("Cannot register settings handler %d", err);
 		return err;
 	}
+#if 0
 	err = settings_load();
 	if (err) {
 		mosh_error("Cannot load settings %d", err);
 		return err;
 	}
+#endif
 	return 0;
 }

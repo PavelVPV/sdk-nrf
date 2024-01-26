@@ -86,11 +86,12 @@ int at_cmd_mode_sett_init(void)
 		mosh_error("Cannot register settings handler %d", ret);
 		return ret;
 	}
-
+#if 0
 	ret = settings_load();
 	if (ret) {
 		mosh_error("Cannot load settings %d", ret);
 		return ret;
 	}
+#endif
 	return ret;
 }

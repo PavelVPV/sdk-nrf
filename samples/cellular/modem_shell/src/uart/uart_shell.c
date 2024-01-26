@@ -17,14 +17,15 @@
 
 #include "uart_shell.h"
 #include "mosh_print.h"
-#include "link.h"
+#include "link/link.h"
 
 #define UART_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
 
 static const struct device *const shell_uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
 
 bool uart_shell_disable_during_sleep_requested;
-extern bool link_shell_msleep_notifications_subscribed;
+//extern bool link_shell_msleep_notifications_subscribed;
+bool link_shell_msleep_notifications_subscribed;
 
 static void uart_disable_handler(struct k_work *work)
 {
@@ -121,6 +122,7 @@ void uart_toggle_power_state(void)
 
 static int cmd_uart_disable_when_sleep(void)
 {
+#if defined(CONFIG_MOSH_LINK)
 	/* Modem sleep notification must be subscribed to. Check if the user has already subscribed
 	 * to avoid resubscribing and potentially altering the configured notification threshold.
 	 */
@@ -136,11 +138,13 @@ static int cmd_uart_disable_when_sleep(void)
 	 * modem enter sleep mode.
 	 */
 	uart_shell_disable_during_sleep_requested = true;
+#endif
 	return 0;
 }
 
 static int cmd_uart_enable_when_sleep(void)
 {
+#if defined(CONFIG_MOSH_LINK)
 	/* If the sleep notification subscription was triggered by 'uart disable during_sleep' and
 	 * not explicitly by the user, unsubscribe from notification if user re-enables UARTs.
 	 */
@@ -152,6 +156,7 @@ static int cmd_uart_enable_when_sleep(void)
 
 	/* Reset the flag, no dot disable UARTs when the modem enters sleep mode. */
 	uart_shell_disable_during_sleep_requested = false;
+#endif
 	return 0;
 }
 
