@@ -268,6 +268,9 @@ static void nrf_cloud_event_handler(const struct nrf_cloud_evt *evt)
 			   evt->status);
 		mosh_error("Connecting to nRF Cloud failed");
 		break;
+	case NRF_CLOUD_EVT_FOTA_JOB_AVAILABLE:
+		mosh_print("nRF Cloud event: NRF_CLOUD_EVT_FOTA_JOB_AVAILABLE");
+		break;
 	case NRF_CLOUD_EVT_ERROR:
 		mosh_print("nRF Cloud event: NRF_CLOUD_EVT_ERROR, status: %d", evt->status);
 		break;
@@ -318,11 +321,20 @@ static void cmd_cloud_disconnect(const struct shell *shell, size_t argc, char **
 	}
 }
 
+static void cmd_fota_start(const struct shell *shell, size_t argc, char **argv)
+{
+	int err;
+
+	err = nrf_cloud_fota_job_start();
+	mosh_print("fota job start: %d\n", err);
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	sub_cloud,
 	SHELL_CMD_ARG(connect, NULL, "Establish MQTT connection to nRF Cloud.", cmd_cloud_connect,
 		      1, 0),
 	SHELL_CMD_ARG(disconnect, NULL, "Disconnect from nRF Cloud.", cmd_cloud_disconnect, 1, 0),
+	SHELL_CMD_ARG(fota-start, NULL, "FOTA start", cmd_fota_start, 1, 0),
 	SHELL_SUBCMD_SET_END
 );
 

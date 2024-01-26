@@ -332,7 +332,7 @@ int main(void)
 		printk("bt_ready_sem err: %d", err);
 	}
 
-	printk("loading settings'n");
+	printk("loading settings\n");
 
 	err = settings_load();
 	if (err) {

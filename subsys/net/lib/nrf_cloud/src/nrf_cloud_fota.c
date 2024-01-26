@@ -34,7 +34,7 @@
 #include <nrf_modem.h>
 #endif
 
-LOG_MODULE_REGISTER(nrf_cloud_fota, CONFIG_NRF_CLOUD_FOTA_LOG_LEVEL);
+LOG_MODULE_REGISTER(nrf_cloud_fota, 4);//CONFIG_NRF_CLOUD_FOTA_LOG_LEVEL);
 
 #define TOPIC_FOTA_RCV    "/jobs/rcv"
 #define TOPIC_FOTA_REQ    "/jobs/req"

@@ -141,6 +141,6 @@ int mesh_dfu_main(void (*bt_ready_cb)(void))
 
 int mesh_dfu_start(void)
 {
-	//bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
+	bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
 	return 0;
 }

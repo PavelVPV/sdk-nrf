@@ -20,6 +20,7 @@ add_subdirectory(src/at)
 add_subdirectory_ifdef(CONFIG_MOSH_NRF91_NON_OFFLOADING_DEV src/drivers)
 add_subdirectory_ifdef(CONFIG_NRF_MODEM_LIB_TRACE src/modem_trace)
 add_subdirectory(src/cloud)
+#add_subdirectory(src/fota)
 add_subdirectory(src/mesh)
 
 zephyr_include_directories_ifdef(CONFIG_MEMFAULT config)
