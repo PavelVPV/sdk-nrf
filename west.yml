@@ -39,6 +39,8 @@ manifest:
       url-base: https://github.com/BabbleSim
     - name: bosch
       url-base: https://github.com/boschsensortec
+    - name: pavelvpv
+      url-base: https://github.com/pavelvpv
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -60,8 +62,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: pavelvpv
       repo-path: sdk-zephyr
-      revision: f8dc8ac55203667f5137e4d4e245de4277db4980
+      revision: nrf9160_modem_shell_with_mesh_distributor
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
