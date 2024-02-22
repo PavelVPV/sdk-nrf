@@ -350,4 +350,17 @@ endif()
 include(${CMAKE_CURRENT_LIST_DIR}/netcore.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/secureboot.cmake)
 
+if(SB_CONFIG_NETCORE_HCI_IPC AND SB_CONFIG_NETCORE_BT_MESH_DEFAULTS)
+  # Inject this configuration to enable the necessary amount of advertising sets in the Bluetooth
+  # controller on the network core required by the Bluetooth Mesh.
+  # FIXME #1: This overlay needs to be first, otherwise it overwrites users overlay file in
+  # <app>/sysbuild/hci_ipc.conf
+  # FIXME #2: If user creates prj.conf for netcore, they must not use
+  # SB_CONFI_NETCORE_BT_MESH_DEFAULTS option
+  add_overlay_config(
+    hci_ipc
+    "${ZEPHYR_NRF_MODULE_DIR}/subsys/bluetooth/mesh/hci_ipc_child_image_overlay.conf"
+  )
+endif()
+
 store_ncs_vars()

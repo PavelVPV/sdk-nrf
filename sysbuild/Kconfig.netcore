@@ -147,4 +147,14 @@ config NETCORE_APP_UPDATE
 
 endif
 
+if NETCORE_HCI_IPC
+
+config NETCORE_BT_MESH_DEFAULTS
+	bool "Bluetooth Mesh default configuration"
+	help
+	  Enables the extended advertising API support and the necessary amount of advertising sets
+	  in the Bluetooth controller on the network core required by the Bluetooth Mesh.
+
+endif
+
 endmenu
