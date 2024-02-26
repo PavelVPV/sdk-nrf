@@ -19,11 +19,16 @@ tests:
       - CONFIG_BT_MESH_SCENE_SRV=y
       - CONFIG_BT_MESH_SCHEDULER_SRV=y
   bluetooth.mesh.build_models.shell:
-    extra_configs:
+    extra_args:
       - OVERLAY_CONFIG=overlay-mesh-shell.conf
+      - EXTRA_DTC_OVERLAY_FILE=app.overlay
+    # Explicitly disabling settings to ensure they're not "imply"'d by anything:
+    extra_configs:
+      - CONFIG_BT_SETTINGS=n
   bluetooth.mesh.build_models.emds:
     # Include emergency data storage (EMDS):
     # The models that uses the EMDS is already included, remove the models that
     # does not use EMDS.
-    extra_configs:
+    extra_args:
       - OVERLAY_CONFIG=overlay-mesh-emds.conf
+      - EXTRA_DTC_OVERLAY_FILE=app.overlay
