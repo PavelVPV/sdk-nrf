@@ -28,6 +28,11 @@ struct led_ctx {
 	bool value;
 };
 
+static struct bt_mesh_models_metadata_entry * onoff_metadata[] = {
+	&(struct bt_mesh_models_metadata_entry)BT_MESH_MODELS_METADATA_ENTRY(0xff, 1, (uint8_t[]){1}),
+	&(struct bt_mesh_models_metadata_entry)BT_MESH_MODELS_METADATA_END,
+};
+
 static struct led_ctx led_ctx[] = {
 #if DT_NODE_EXISTS(DT_ALIAS(led0))
 	{ .srv = BT_MESH_ONOFF_SRV_INIT(&onoff_handlers) },
@@ -184,22 +189,22 @@ static struct bt_mesh_elem elements[] = {
 		1, BT_MESH_MODEL_LIST(
 			BT_MESH_MODEL_CFG_SRV,
 			BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
-			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv)),
+			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv, onoff_metadata)),
 		BT_MESH_MODEL_NONE),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led1))
 	BT_MESH_ELEM(
-		2, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[1].srv)),
+		2, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[1].srv, onoff_metadata)),
 		BT_MESH_MODEL_NONE),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led2))
 	BT_MESH_ELEM(
-		3, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[2].srv)),
+		3, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[2].srv, onoff_metadata)),
 		BT_MESH_MODEL_NONE),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led3))
 	BT_MESH_ELEM(
-		4, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[3].srv)),
+		4, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[3].srv, onoff_metadata)),
 		BT_MESH_MODEL_NONE),
 #endif
 };

@@ -41,12 +41,13 @@ struct bt_mesh_onoff_srv;
  *
  * @param[in] _srv Pointer to a @ref bt_mesh_onoff_srv instance.
  */
-#define BT_MESH_MODEL_ONOFF_SRV(_srv)                                          \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_ONOFF_SRV,                       \
+#define BT_MESH_MODEL_ONOFF_SRV(_srv, _metadata)                                          \
+	BT_MESH_MODEL_METADATA_CB(BT_MESH_MODEL_ID_GEN_ONOFF_SRV,                       \
 			 _bt_mesh_onoff_srv_op, &(_srv)->pub,                  \
 			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_onoff_srv,     \
 						 _srv),                        \
-			 &_bt_mesh_onoff_srv_cb)
+			 &_bt_mesh_onoff_srv_cb, \
+			 (_metadata))
 
 /** Generic OnOff Server state access handlers. */
 struct bt_mesh_onoff_srv_handlers {
