@@ -87,6 +87,22 @@ static const struct bt_mesh_comp comp = {
 	.elem_count = ARRAY_SIZE(elements),
 };
 
+static struct bt_mesh_elem elements_v2[] = {
+	BT_MESH_ELEM(1,
+		     BT_MESH_MODEL_LIST(BT_MESH_MODEL_CFG_SRV,
+					BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
+		     BT_MESH_MODEL_NONE),
+	BT_MESH_ELEM(2,
+		     BT_MESH_MODEL_LIST(BT_MESH_MODEL_DFU_SRV(&dfu_srv)),
+		     BT_MESH_MODEL_NONE),
+};
+
+static const struct bt_mesh_comp comp_v2 = {
+	.cid = CONFIG_BT_COMPANY_ID,
+	.elem = elements_v2,
+	.elem_count = ARRAY_SIZE(elements_v2),
+};
+
 static void bt_ready(int err)
 {
 	if (err) {
@@ -102,7 +118,8 @@ static void bt_ready(int err)
 		return;
 	}
 
-	err = bt_mesh_init(bt_mesh_dk_prov_init(), &comp);
+	err = bt_mesh_init(bt_mesh_dk_prov_init(),
+			   IS_ENABLED(CONFIG_COMP_DATA_WITH_2_ELEMS) ? &comp_v2 : &comp);
 	if (err) {
 		printk("Initializing mesh failed (err %d)\n", err);
 		return;

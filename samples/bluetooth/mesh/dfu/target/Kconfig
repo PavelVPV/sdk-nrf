@@ -1,0 +1,18 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+source "Kconfig.zephyr"
+
+menu "Bluetooth mesh DFU target sample configuration"
+
+config COMP_DATA_WITH_2_ELEMS
+	bool "Use composition data with 2 elements"
+	help
+	  When this option is enabled, the DFU server and BLOB server models are relocated to the
+	  second element of the composition data. This can be used to test the DFU with the
+	  composition data change.
+
+endmenu
