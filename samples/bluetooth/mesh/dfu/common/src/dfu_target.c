@@ -269,7 +269,7 @@ void dfu_target_image_confirm(void)
 {
 	int err;
 
-	err = boot_write_img_confirmed();
+	err = boot_write_img_confirmed_multi(0);
 	if (err) {
 		printk("Failed to confirm image: %d\n", err);
 	}
