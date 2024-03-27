@@ -8,6 +8,7 @@
  *  @brief Bluetooth Mesh DFU Target role sample
  */
 #include <zephyr/kernel.h>
+#include <bluetooth/mesh/models.h>
 #include <bluetooth/mesh/dk_prov.h>
 #include <zephyr/storage/flash_map.h>
 #include <dk_buttons_and_leds.h>
@@ -72,14 +73,12 @@ static struct bt_mesh_health_srv health_srv = {
 
 BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 
-static struct bt_mesh_model models[] = {
-	BT_MESH_MODEL_CFG_SRV,
-	BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
-	BT_MESH_MODEL_DFU_SRV(&dfu_srv)
-};
-
 static struct bt_mesh_elem elements[] = {
-	BT_MESH_ELEM(1, models, BT_MESH_MODEL_NONE),
+	BT_MESH_ELEM(1,
+		     BT_MESH_MODEL_LIST(BT_MESH_MODEL_CFG_SRV,
+					BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
+					BT_MESH_MODEL_DFU_SRV(&dfu_srv)),
+		     BT_MESH_MODEL_NONE),
 };
 
 static const struct bt_mesh_comp comp = {
