@@ -112,6 +112,14 @@ config DFU_TARGET_FULL_MODEM_USE_EXT_PARTITION
 	select PM_PARTITION_REGION_FMFU_STORAGE_EXTERNAL
 	bool "Use a dedicated FMFU partition on the external flash device"
 
+config DFU_TARGET_DISTRIBUTOR
+	bool "Firmware update distributor support"
+	depends on DFU_TARGET_STREAM
+	depends on STREAM_FLASH
+	help
+	  Enable support for storing firmware for future distribution over other technology,
+	  e.g. Bluetooth mesh.
+
 module=DFU_TARGET
 module-dep=LOG
 module-str=Device Firmware Upgrade

@@ -26,3 +26,6 @@ zephyr_library_sources_ifdef(CONFIG_DFU_TARGET_MCUBOOT
 zephyr_library_sources_ifdef(CONFIG_DFU_TARGET_SMP
   src/dfu_target_smp.c
   )
+zephyr_library_sources_ifdef(CONFIG_DFU_TARGET_DISTRIBUTOR
+  src/dfu_target_dist.c
+  )

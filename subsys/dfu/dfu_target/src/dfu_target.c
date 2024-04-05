@@ -34,6 +34,10 @@ DEF_DFU_TARGET(full_modem);
 #include "dfu/dfu_target_smp.h"
 DEF_DFU_TARGET(smp);
 #endif
+#ifdef CONFIG_DFU_TARGET_DISTRIBUTOR
+#include "dfu/dfu_target_dist.h"
+DEF_DFU_TARGET(dist);
+#endif
 
 #define MIN_SIZE_IDENTIFY_BUF 32
 
