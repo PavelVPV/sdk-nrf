@@ -58,6 +58,18 @@ struct bt_mesh_light_temp_srv;
 		BT_MESH_MODEL_USER_DATA(struct bt_mesh_light_temp_srv, _srv),  \
 		&_bt_mesh_light_temp_srv_cb)
 
+/**
+ * Same as BT_MESH_MODEL_LIGHT_TEMP_SRV but with metadata
+ */
+#define BT_MESH_MODEL_LIGHT_TEMP_SRV_METADATA(_srv, meta)                      \
+	BT_MESH_MODEL_LVL_SRV(&(_srv)->lvl),                                   \
+	BT_MESH_MODEL_METADATA_CB(                                             \
+		BT_MESH_MODEL_ID_LIGHT_CTL_TEMP_SRV,                           \
+		_bt_mesh_light_temp_srv_op, &(_srv)->pub,                      \
+		BT_MESH_MODEL_USER_DATA(struct bt_mesh_light_temp_srv, _srv),  \
+		&_bt_mesh_light_temp_srv_cb,                                   \
+		meta)
+
 /** Light CTL Temperature Server state access handlers. */
 struct bt_mesh_light_temp_srv_handlers {
 	/** @brief Set the Light Temperature state.

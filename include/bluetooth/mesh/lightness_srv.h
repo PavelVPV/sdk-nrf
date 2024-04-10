@@ -65,6 +65,24 @@ struct bt_mesh_lightness_srv;
 						 _srv),                        \
 			 &_bt_mesh_lightness_setup_srv_cb)
 
+/**
+ * Same as BT_MESH_MODEL_LIGHTNESS_SRV but with metadata
+ */
+#define BT_MESH_MODEL_LIGHTNESS_SRV_METADATA(_srv, meta)                       \
+	BT_MESH_MODEL_LVL_SRV(&(_srv)->lvl),                                   \
+	BT_MESH_MODEL_PONOFF_SRV(&(_srv)->ponoff),                             \
+	BT_MESH_MODEL_METADATA_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV,        \
+			 _bt_mesh_lightness_srv_op, &(_srv)->pub,              \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lightness_srv, \
+						 _srv),                        \
+			 &_bt_mesh_lightness_srv_cb,                           \
+			 meta),                                                \
+	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV,           \
+			 _bt_mesh_lightness_setup_srv_op, NULL,                \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lightness_srv, \
+						 _srv),                        \
+			 &_bt_mesh_lightness_setup_srv_cb)
+
 /** Collection of handler callbacks for the Light Lightness Server. */
 struct bt_mesh_lightness_srv_handlers {
 	/** @brief Set the Light state.

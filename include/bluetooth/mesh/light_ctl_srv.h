@@ -59,6 +59,22 @@ struct bt_mesh_light_ctl_srv;
 			 &_bt_mesh_light_ctl_setup_srv_cb)
 
 /**
+ * Same as BT_MESH_MODEL_LIGHT_CTL_SRV but with metadata
+ */
+#define BT_MESH_MODEL_LIGHT_CTL_SRV_METADATA(_srv, lightness_meta)             \
+	BT_MESH_MODEL_LIGHTNESS_SRV_METADATA(&(_srv)->lightness_srv, lightness_meta), \
+	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_LIGHT_CTL_SRV,                       \
+			 _bt_mesh_light_ctl_srv_op, &(_srv)->pub,              \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_light_ctl_srv, \
+						 _srv),                        \
+			 &_bt_mesh_light_ctl_srv_cb),                          \
+	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_LIGHT_CTL_SETUP_SRV,                 \
+			 _bt_mesh_light_ctl_setup_srv_op, NULL,                \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_light_ctl_srv, \
+						 _srv),                        \
+			 &_bt_mesh_light_ctl_setup_srv_cb)
+
+/**
  * Light CTL Server instance. Should be initialized with
  * @ref BT_MESH_LIGHT_CTL_SRV_INIT.
  */
