@@ -1,0 +1,8 @@
+# ble_mesh.yaml
+description: Bt Mesh Element properties
+
+compatible: "bt,mesh-element"
+
+properties:
+  location:
+    type: int

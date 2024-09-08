@@ -1,0 +1,21 @@
+/ {
+	mesh: mesh {
+		elements {
+			element_1 {
+				location = <1>;
+				compatible = "bt,mesh-element";
+				models {
+					model-cfg-srv {
+						compatible = "bt,mesh-model-cfg-srv";
+					};
+					model-health-srv {
+						compatible = "bt,mesh-model-health-srv";
+					};
+					model-onoff-cli-0 {
+						compatible = "bt,mesh-model-onoff-cli";
+					};
+				};
+			};
+		};
+	};
+};
