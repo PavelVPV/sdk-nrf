@@ -1,0 +1,18 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+description: |
+    This is a representation of an external radio coexistence setup that has a
+    one-pin control interface (GRANT).
+
+include: base.yaml
+
+properties:
+  coex-pta-grant-gpios:
+    type: phandle-array
+    description: |
+      A phandle to the GPIO controller that controls the GRANT signal.
+      The GPIO controller must be defined in the device tree.
+    required: true
+
+compatible: "coex-pta-grant-gpios"

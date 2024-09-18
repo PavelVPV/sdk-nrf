@@ -161,6 +161,7 @@ static int mpsl_cx_init(void)
 	}
 
 	grant_abs_pin = NRF_GPIO_PIN_MAP(GRANT_PIN_PORT_NO, GRANT_PIN_PIN_NO);
+
 	nrfx_gpiote_trigger_disable(&gpiote, grant_abs_pin);
 
 	gpio_init_callback(&grant_cb, gpiote_irq_handler, BIT(gra_spec.pin));
