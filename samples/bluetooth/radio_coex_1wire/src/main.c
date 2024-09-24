@@ -17,8 +17,6 @@
 #include <helpers/nrfx_gppi.h>
 #include <nrfx_gpiote.h>
 #include <nrfx_timer.h>
-//#include <nrfx_ppi.h>
-//#include <nrfx_dppi.h>
 #include <hal/nrf_gpio.h>
 
 /* Generalize PPI or DPPI channel management */
@@ -36,8 +34,7 @@
 #error "No PPI or DPPI"
 #endif
 
-//#define APP_COUNTER NRF_TIMER20
-#define APP_COUNTER NRF_TIMER1
+#define APP_COUNTER ((NRF_TIMER_Type *) DT_REG_ADDR(DT_ALIAS(timer)))
 #define APP_COUNTER_RADIO_ACTIVITY_CC 0
 
 #if DT_NODE_HAS_STATUS(DT_PHANDLE(DT_NODELABEL(radio), coex), okay)
@@ -55,8 +52,6 @@
 #define APP_GRANT_GPIO_PIN 0
 #endif
 
-static struct gpio_dt_spec app_grant_gpio = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, coex_pta_grant_gpios);
-
 #define APP_GRANT_ACTIVE_LOW                                                                       \
 	(GPIO_ACTIVE_LOW & DT_GPIO_FLAGS(COEX_NODE, grant_gpios) ? true : false)
 
@@ -67,9 +62,6 @@ static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
-
-//static const nrfx_timer_t app_timer_instance = NRFX_TIMER_INSTANCE(20);
-static const nrfx_timer_t app_timer_instance = NRFX_TIMER_INSTANCE(1);
 
 static void print_welcome_message(void)
 {
@@ -139,89 +131,28 @@ static void console_print_thread(void)
 	}
 }
 
-#if 0
-static nrf_ppi_channel_t allocate_gppi_channel(void)
+static gppi_channel_t allocate_gppi_channel(void)
 {
-	nrf_ppi_channel_t channel;
+	gppi_channel_t channel;
 
-	if (nrfx_ppi_channel_alloc(&channel) != NRFX_SUCCESS) {
+	if (gppi_channel_alloc(&channel) != NRFX_SUCCESS) {
 		__ASSERT(false, "(D)PPI channel allocation error");
 	}
 	return channel;
 }
-#endif
-
-#if 1
-static void unused_timer_isr_handler(nrf_timer_event_t event_type, void *ctx)
-{
-	ARG_UNUSED(event_type);
-	ARG_UNUSED(ctx);
-}
-#endif
 
 static void setup_radio_event_counter(void)
 {
 	/* This function sets up a timer as a counter to count radio events. */
-#if 0
 	nrf_timer_mode_set(APP_COUNTER, NRF_TIMER_MODE_LOW_POWER_COUNTER);
 
-	nrf_ppi_channel_t channel = allocate_gppi_channel();
+	gppi_channel_t channel = allocate_gppi_channel();
 
 	nrfx_gppi_channel_endpoints_setup(
 		channel, nrf_radio_event_address_get(NRF_RADIO, NRF_RADIO_EVENT_READY),
 
 		nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT));
-	nrfx_ppi_channel_enable(channel);
-#elif 1
-	gppi_channel_t dppi_channel;
-	int ret;
-
-	const nrfx_timer_config_t timer_cfg = {
-		.frequency = NRFX_MHZ_TO_HZ(16UL),
-		.mode = NRF_TIMER_MODE_TIMER,
-		.bit_width = NRF_TIMER_BIT_WIDTH_8,
-		.interrupt_priority = NRFX_TIMER_DEFAULT_CONFIG_IRQ_PRIORITY,
-		.p_context = NULL};
-
-	ret = nrfx_timer_init(&app_timer_instance, &timer_cfg, unused_timer_isr_handler);
-	if (ret != NRFX_SUCCESS) {
-		printk("Failed initializing timer (ret: %d)\n", ret - NRFX_ERROR_BASE_NUM);
-	}
-
-
-	ret = gppi_channel_alloc(&dppi_channel);
-	if (ret != NRFX_SUCCESS) {
-		printk("nrfx DPPI channel alloc error for starting RTC: %d", ret);
-	}
-
-	nrfx_gppi_channel_endpoints_setup(dppi_channel,
-					  nrfx_timer_task_address_get(&app_timer_instance, NRF_TIMER_TASK_COUNT),
-					  nrf_radio_event_address_get(NRF_RADIO, NRF_RADIO_EVENT_READY));
-
-	nrfx_timer_enable(&app_timer_instance);
-
-	nrfx_gppi_channels_enable(BIT(dppi_channel));
-#else
-	uint8_t dppi_channel;
-	int ret;
-
-	nrf_timer_mode_set(APP_COUNTER, NRF_TIMER_MODE_LOW_POWER_COUNTER);
-
-	ret = nrfx_gppi_channel_alloc(&dppi_channel);
-	if (ret != NRFX_SUCCESS) {
-		printk("nrfx DPPI channel alloc error for starting RTC: %d", ret);
-		while(1);
-	}
-
-	printk("ready: %p, count: %p\n",
-		nrf_radio_event_address_get(NRF_RADIO, NRF_RADIO_EVENT_READY),
-		nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT));
-	nrfx_gppi_channel_endpoints_setup(
-		dppi_channel, nrf_radio_event_address_get(NRF_RADIO, NRF_RADIO_EVENT_READY),
-
-		nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT));
-	nrfx_gppi_channels_enable(BIT(dppi_channel));
-#endif
+	gppi_channel_enable(channel);
 }
 
 static void setup_grant_pin(void)
