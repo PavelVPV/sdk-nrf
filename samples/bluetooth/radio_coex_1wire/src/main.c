@@ -21,7 +21,23 @@
 //#include <nrfx_dppi.h>
 #include <hal/nrf_gpio.h>
 
-#define APP_COUNTER NRF_TIMER020
+/* Generalize PPI or DPPI channel management */
+#if defined(PPI_PRESENT)
+#include <nrfx_ppi.h>
+#define gppi_channel_t nrf_ppi_channel_t
+#define gppi_channel_alloc nrfx_ppi_channel_alloc
+#define gppi_channel_enable nrfx_ppi_channel_enable
+#elif defined(DPPI_PRESENT)
+#include <nrfx_dppi.h>
+#define gppi_channel_t uint8_t
+#define gppi_channel_alloc nrfx_dppi_channel_alloc
+#define gppi_channel_enable nrfx_dppi_channel_enable
+#else
+#error "No PPI or DPPI"
+#endif
+
+//#define APP_COUNTER NRF_TIMER20
+#define APP_COUNTER NRF_TIMER1
 #define APP_COUNTER_RADIO_ACTIVITY_CC 0
 
 #if DT_NODE_HAS_STATUS(DT_PHANDLE(DT_NODELABEL(radio), coex), okay)
@@ -52,7 +68,8 @@ static const struct bt_data ad[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
 
-static const nrfx_timer_t app_timer_instance = NRFX_TIMER_INSTANCE(020);
+//static const nrfx_timer_t app_timer_instance = NRFX_TIMER_INSTANCE(20);
+static const nrfx_timer_t app_timer_instance = NRFX_TIMER_INSTANCE(1);
 
 static void print_welcome_message(void)
 {
@@ -156,7 +173,7 @@ static void setup_radio_event_counter(void)
 		nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT));
 	nrfx_ppi_channel_enable(channel);
 #elif 1
-	uint8_t dppi_channel;
+	gppi_channel_t dppi_channel;
 	int ret;
 
 	const nrfx_timer_config_t timer_cfg = {
@@ -172,7 +189,7 @@ static void setup_radio_event_counter(void)
 	}
 
 
-	ret = nrfx_gppi_channel_alloc(&dppi_channel);
+	ret = gppi_channel_alloc(&dppi_channel);
 	if (ret != NRFX_SUCCESS) {
 		printk("nrfx DPPI channel alloc error for starting RTC: %d", ret);
 	}
