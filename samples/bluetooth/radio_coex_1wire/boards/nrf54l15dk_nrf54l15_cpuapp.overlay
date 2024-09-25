@@ -9,17 +9,15 @@
 		coex-pta-grant-gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
 	};
 
-	dummy_node {
-		status = "okay";
-		coex-pta-grant-gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
-		compatible = "coex-pta-grant-gpios";
-	};
-
 	nrf_radio_coex: radio_coex_one_wire {
 		status = "okay";
 		compatible = "sdc-radio-coex-one-wire";
 		grant-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
 		concurrency-mode = <0>;
+	};
+
+	aliases {
+		timer = &timer20;
 	};
 };
 
@@ -38,7 +36,8 @@
 &timer20 {
 	status = "okay";
 };
-
-&dppic20 {
-	status = "okay";
-};
+/*
+*&dppic10 {
+*	status = "okay";
+*};
+*/

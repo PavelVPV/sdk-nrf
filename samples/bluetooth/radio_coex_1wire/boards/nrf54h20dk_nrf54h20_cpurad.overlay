@@ -21,6 +21,10 @@
 		grant-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
 		concurrency-mode = <0>;
 	};
+
+	aliases {
+		timer = &timer020;
+	};
 };
 
 &gpio0 {
