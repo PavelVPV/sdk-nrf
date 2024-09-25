@@ -18,16 +18,15 @@
 #include <nrfx_gpiote.h>
 #include <nrfx_timer.h>
 #include <hal/nrf_gpio.h>
-
 #include <hal/nrf_egu.h>
 #include <nrfx_dppi.h>
-
 #include <hal/nrf_ppib.h>
 
+/* Predefined channels for radio events. */
 #include <protocol/mpsl_dppi_protocol_api.h>
 
 #define APP_COUNTER ((NRF_TIMER_Type *) DT_REG_ADDR(DT_ALIAS(timer)))
-#define APP_COUNTER_RADIO_ACTIVITY_CC 4
+#define APP_COUNTER_RADIO_ACTIVITY_CC 0
 
 #if DT_NODE_HAS_STATUS(DT_PHANDLE(DT_NODELABEL(radio), coex), okay)
 #define COEX_NODE DT_PHANDLE(DT_NODELABEL(radio), coex)
@@ -143,11 +142,15 @@ static void setup_radio_event_counter(void)
 	nrf_ppib_subscribe_set(NRF_PPIB11, NRF_PPIB_TASK_SEND_0, ready_channel);
 	nrf_ppib_publish_set(NRF_PPIB21, NRF_PPIB_EVENT_RECEIVE_0, ready_channel);
 
-	nrfy_dppi_channels_set(NRF_DPPIC10, NRFX_BIT((uint32_t)ready_channel), true);
-	nrfy_dppi_channels_set(NRF_DPPIC20, NRFX_BIT((uint32_t)ready_channel), true);
+	nrf_dppi_channels_enable(NRF_DPPIC10, BIT(ready_channel));
+	nrf_dppi_channels_enable(NRF_DPPIC20, BIT(ready_channel));
 #elif defined(CONFIG_SOC_SERIES_NRF54HX)
 	/* Radio events are published on predefined channels.
 	 */
+	uint8_t ready_channel = MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX;
+
+	NRF_DPPI_ENDPOINT_SETUP(nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT),
+				ready_channel);
 #endif
 }
 

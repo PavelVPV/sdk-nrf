@@ -23,7 +23,7 @@
 	};
 
 	aliases {
-		timer = &timer020;
+		timer = &timer021;
 	};
 };
 
@@ -48,12 +48,12 @@
 	coex = <&nrf_radio_coex>;
 };
 
-&timer020 {
+&timer021 {
 	status = "okay";
 };
 
 &dppic020 {
 	status = "okay";
-	source-channels = < 0 1 >;
-	sink-channels = < 2 3 >;
+	source-channels = < 4 >;
+	sink-channels = < 4 >;
 };
