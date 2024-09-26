@@ -26,7 +26,7 @@
 #include <protocol/mpsl_dppi_protocol_api.h>
 
 #define APP_COUNTER ((NRF_TIMER_Type *) DT_REG_ADDR(DT_ALIAS(timer)))
-#define APP_COUNTER_RADIO_ACTIVITY_CC 0
+#define APP_COUNTER_RADIO_ACTIVITY_CC 4
 
 #if DT_NODE_HAS_STATUS(DT_PHANDLE(DT_NODELABEL(radio), coex), okay)
 #define COEX_NODE DT_PHANDLE(DT_NODELABEL(radio), coex)
@@ -104,6 +104,9 @@ static void console_print_thread(void)
 		nrf_timer_task_trigger(APP_COUNTER, NRF_TIMER_TASK_CLEAR);
 
 		k_sleep(K_MSEC(1000));
+		printk("PUBLISH_EVENT: %x, SUBSCRIBE_COUNT: %x, CHEN: %x\n",
+		       *(uint32_t*)0x5302C300, *(uint32_t *)0x5302A088, *(uint32_t*)0x53022500);
+	nrf_dppi_channels_enable(NRF_DPPIC020, BIT(MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX));
 	}
 }
 
@@ -151,6 +154,15 @@ static void setup_radio_event_counter(void)
 
 	NRF_DPPI_ENDPOINT_SETUP(nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT),
 				ready_channel);
+	nrf_dppi_channels_enable(NRF_DPPIC020, BIT(ready_channel));
+	nrf_dppi_channels_enable(NRF_DPPIC030, BIT(ready_channel));
+	nrf_dppi_channels_enable(NRF_DPPIC130, BIT(ready_channel));
+
+//	nrf_ppib_subscribe_set(NRF_PPIB020, NRF_PPIB_TASK_SEND_0, ready_channel);
+//	nrf_ppib_publish_set(NRF_PPIB134, NRF_PPIB_EVENT_RECEIVE_0, ready_channel);
+
+//	nrf_dppi_channels_enable(NRF_DPPIC020, BIT(ready_channel));
+//	nrf_dppi_channels_enable(NRF_DPPIC133, BIT(ready_channel));
 #endif
 }
 
@@ -190,6 +202,8 @@ int main(void)
 	print_welcome_message();
 
 	while (1) {
+		printk("PUBLISH_EVENT: %x, SUBSCRIBE_COUNT: %x, CHEN: %x\n",
+		       *(uint32_t*)0x5302C300, *(uint32_t *)0x5302A088, *(uint32_t*)0x53022500);
 		k_sleep(K_MSEC(100));
 		check_input();
 	}

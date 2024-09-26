@@ -23,8 +23,16 @@
 	};
 
 	aliases {
-		timer = &timer021;
+		timer = &timer022;
 	};
+};
+
+&cpuapp_dma_region {
+	reg = <0xe80 0x80>;
+};
+
+&cpurad_dma_region {
+	reg = <0xf00 DT_SIZE_K(4)>;
 };
 
 &gpio0 {
@@ -48,12 +56,12 @@
 	coex = <&nrf_radio_coex>;
 };
 
-&timer021 {
+&timer022 {
 	status = "okay";
 };
 
 &dppic020 {
 	status = "okay";
-	source-channels = < 4 >;
-	sink-channels = < 4 >;
+	source-channels = < 0 1 4 >;
+	sink-channels = < 2 3 4 >;
 };
