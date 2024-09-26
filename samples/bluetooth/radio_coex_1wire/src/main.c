@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/__assert.h>
+#include <zephyr/sys/atomic.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/console/console.h>
@@ -91,10 +92,22 @@ static void check_input(void)
 		return;
 	}
 }
+static atomic_t counter;
+
+static void egu0_handler(const void *context)
+{
+	atomic_inc(&counter);
+#if defined(CONFIG_SOC_SERIES_NRF54LX)
+	nrf_egu_event_clear(NRF_EGU10, NRF_EGU_EVENT_TRIGGERED4);
+#elif defined(CONFIG_SOC_SERIES_NRF54HX)
+	nrf_egu_event_clear(NRF_EGU020, NRF_EGU_EVENT_TRIGGERED4);
+#endif
+}
 
 static void console_print_thread(void)
 {
 	while (1) {
+#if 0
 		nrf_timer_task_trigger(APP_COUNTER,
 				       nrf_timer_capture_task_get(APP_COUNTER_RADIO_ACTIVITY_CC));
 
@@ -102,11 +115,13 @@ static void console_print_thread(void)
 		       nrf_timer_cc_get(APP_COUNTER, APP_COUNTER_RADIO_ACTIVITY_CC));
 
 		nrf_timer_task_trigger(APP_COUNTER, NRF_TIMER_TASK_CLEAR);
-
+#else
+		atomic_val_t val = atomic_set(&counter, 0);
+		printk("Number of radio events in the last second: %d\n", val);
+#endif
 		k_sleep(K_MSEC(1000));
-		printk("PUBLISH_EVENT: %x, SUBSCRIBE_COUNT: %x, CHEN: %x\n",
-		       *(uint32_t*)0x5302C300, *(uint32_t *)0x5302A088, *(uint32_t*)0x53022500);
-	nrf_dppi_channels_enable(NRF_DPPIC020, BIT(MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX));
+//		printk("PUBLISH_EVENT: %x, SUBSCRIBE_COUNT: %x, CHEN: %x\n",
+//		       *(uint32_t*)0x5302C300, *(uint32_t *)0x5302A088, *(uint32_t*)0x53022500);
 	}
 }
 
@@ -136,6 +151,7 @@ static void setup_radio_event_counter(void)
 		nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT));
 	nrfx_ppi_channel_enable(channel);
 #elif defined(CONFIG_SOC_SERIES_NRF54LX)
+#if 0
 	/* Radio events are published on predefined channels.
 	 */
 	uint8_t ready_channel = MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX;
@@ -147,7 +163,14 @@ static void setup_radio_event_counter(void)
 
 	nrf_dppi_channels_enable(NRF_DPPIC10, BIT(ready_channel));
 	nrf_dppi_channels_enable(NRF_DPPIC20, BIT(ready_channel));
+#else
+	nrf_egu_subscribe_set(NRF_EGU10, NRF_EGU_TASK_TRIGGER4, MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX);
+	IRQ_DIRECT_CONNECT(EGU10_IRQn, 5, egu0_handler, 0);
+	nrf_egu_int_enable(NRF_EGU10, NRF_EGU_INT_TRIGGERED4);
+	NVIC_EnableIRQ(EGU10_IRQn);
+#endif
 #elif defined(CONFIG_SOC_SERIES_NRF54HX)
+#if 0
 	/* Radio events are published on predefined channels.
 	 */
 	uint8_t ready_channel = MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX;
@@ -163,6 +186,12 @@ static void setup_radio_event_counter(void)
 
 //	nrf_dppi_channels_enable(NRF_DPPIC020, BIT(ready_channel));
 //	nrf_dppi_channels_enable(NRF_DPPIC133, BIT(ready_channel));
+#else
+	nrf_egu_subscribe_set(NRF_EGU020, NRF_EGU_TASK_TRIGGER4, MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX);
+	IRQ_DIRECT_CONNECT(EGU020_IRQn, 5, egu0_handler, 0);
+	nrf_egu_int_enable(NRF_EGU020, NRF_EGU_INT_TRIGGERED4);
+	NVIC_EnableIRQ(EGU020_IRQn);
+#endif
 #endif
 }
 
@@ -202,8 +231,6 @@ int main(void)
 	print_welcome_message();
 
 	while (1) {
-		printk("PUBLISH_EVENT: %x, SUBSCRIBE_COUNT: %x, CHEN: %x\n",
-		       *(uint32_t*)0x5302C300, *(uint32_t *)0x5302A088, *(uint32_t*)0x53022500);
 		k_sleep(K_MSEC(100));
 		check_input();
 	}
