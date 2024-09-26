@@ -17,7 +17,7 @@
 	};
 
 	aliases {
-		timer = &timer20;
+		egu = &egu10;
 	};
 };
 
@@ -32,12 +32,3 @@
 &radio {
 	coex = <&nrf_radio_coex>;
 };
-
-&timer20 {
-	status = "okay";
-};
-/*
-*&dppic10 {
-*	status = "okay";
-*};
-*/

@@ -23,16 +23,8 @@
 	};
 
 	aliases {
-		timer = &timer022;
+		egu = &egu020;
 	};
-};
-
-&cpuapp_dma_region {
-	reg = <0xe80 0x80>;
-};
-
-&cpurad_dma_region {
-	reg = <0xf00 DT_SIZE_K(4)>;
 };
 
 &gpio0 {
@@ -54,10 +46,6 @@
 
 &radio {
 	coex = <&nrf_radio_coex>;
-};
-
-&timer022 {
-	status = "okay";
 };
 
 &dppic020 {

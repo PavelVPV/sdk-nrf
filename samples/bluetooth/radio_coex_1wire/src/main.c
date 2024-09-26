@@ -14,20 +14,22 @@
 #include <zephyr/drivers/gpio.h>
 
 #include <hal/nrf_radio.h>
-#include <hal/nrf_timer.h>
-#include <helpers/nrfx_gppi.h>
-#include <nrfx_gpiote.h>
-#include <nrfx_timer.h>
 #include <hal/nrf_gpio.h>
 #include <hal/nrf_egu.h>
-#include <nrfx_dppi.h>
-#include <hal/nrf_ppib.h>
+
+#if defined(PPI_PRESENT)
+#include <helpers/nrfx_gppi.h>
+#endif
 
 /* Predefined channels for radio events. */
 #include <protocol/mpsl_dppi_protocol_api.h>
 
-#define APP_COUNTER ((NRF_TIMER_Type *) DT_REG_ADDR(DT_ALIAS(timer)))
-#define APP_COUNTER_RADIO_ACTIVITY_CC 4
+#define EGU_NODE DT_ALIAS(egu)
+#define NRF_EGU ((NRF_EGU_Type *) DT_REG_ADDR(EGU_NODE))
+#define EGU_EVENT_ID 4
+#define EGU_TASK NRFX_CONCAT(NRF_EGU_, TASK_TRIGGER, EGU_EVENT_ID)
+#define EGU_INT NRFX_CONCAT(NRF_EGU_, INT_TRIGGERED, EGU_EVENT_ID)
+#define EGU_EVENT NRFX_CONCAT(NRF_EGU_, EVENT_TRIGGERED, EGU_EVENT_ID)
 
 #if DT_NODE_HAS_STATUS(DT_PHANDLE(DT_NODELABEL(radio), coex), okay)
 #define COEX_NODE DT_PHANDLE(DT_NODELABEL(radio), coex)
@@ -54,6 +56,8 @@ static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
+
+static atomic_t counter;
 
 static void print_welcome_message(void)
 {
@@ -92,36 +96,23 @@ static void check_input(void)
 		return;
 	}
 }
-static atomic_t counter;
 
-static void egu0_handler(const void *context)
+static void egu_handler(const void *context)
 {
 	atomic_inc(&counter);
-#if defined(CONFIG_SOC_SERIES_NRF54LX)
-	nrf_egu_event_clear(NRF_EGU10, NRF_EGU_EVENT_TRIGGERED4);
-#elif defined(CONFIG_SOC_SERIES_NRF54HX)
-	nrf_egu_event_clear(NRF_EGU020, NRF_EGU_EVENT_TRIGGERED4);
-#endif
+
+	nrf_egu_event_clear(NRF_EGU, EGU_EVENT);
 }
 
 static void console_print_thread(void)
 {
 	while (1) {
-#if 0
-		nrf_timer_task_trigger(APP_COUNTER,
-				       nrf_timer_capture_task_get(APP_COUNTER_RADIO_ACTIVITY_CC));
+		atomic_val_t val;
 
-		printk("Number of radio events in the last second: %d\n",
-		       nrf_timer_cc_get(APP_COUNTER, APP_COUNTER_RADIO_ACTIVITY_CC));
+		val = atomic_set(&counter, 0);
+		printk("Number of radio events in the last second: %ld\n", val);
 
-		nrf_timer_task_trigger(APP_COUNTER, NRF_TIMER_TASK_CLEAR);
-#else
-		atomic_val_t val = atomic_set(&counter, 0);
-		printk("Number of radio events in the last second: %d\n", val);
-#endif
 		k_sleep(K_MSEC(1000));
-//		printk("PUBLISH_EVENT: %x, SUBSCRIBE_COUNT: %x, CHEN: %x\n",
-//		       *(uint32_t*)0x5302C300, *(uint32_t *)0x5302A088, *(uint32_t*)0x53022500);
 	}
 }
 
@@ -139,60 +130,21 @@ static uint8_t allocate_gppi_channel(void)
 
 static void setup_radio_event_counter(void)
 {
-	/* This function sets up a timer as a counter to count radio events. */
-	nrf_timer_mode_set(APP_COUNTER, NRF_TIMER_MODE_LOW_POWER_COUNTER);
-
 #if defined(PPI_PRESENT)
 	nrf_ppi_channel_t channel = allocate_gppi_channel();
 
 	nrfx_gppi_channel_endpoints_setup(
 		channel, nrf_radio_event_address_get(NRF_RADIO, NRF_RADIO_EVENT_READY),
-
-		nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT));
+		nrf_egu_task_address_get(NRF_EGU, EGU_TASK));
 	nrfx_ppi_channel_enable(channel);
-#elif defined(CONFIG_SOC_SERIES_NRF54LX)
-#if 0
-	/* Radio events are published on predefined channels.
-	 */
-	uint8_t ready_channel = MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX;
-
-	NRF_DPPI_ENDPOINT_SETUP(nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT),
-				ready_channel);
-	nrf_ppib_subscribe_set(NRF_PPIB11, NRF_PPIB_TASK_SEND_0, ready_channel);
-	nrf_ppib_publish_set(NRF_PPIB21, NRF_PPIB_EVENT_RECEIVE_0, ready_channel);
-
-	nrf_dppi_channels_enable(NRF_DPPIC10, BIT(ready_channel));
-	nrf_dppi_channels_enable(NRF_DPPIC20, BIT(ready_channel));
 #else
-	nrf_egu_subscribe_set(NRF_EGU10, NRF_EGU_TASK_TRIGGER4, MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX);
-	IRQ_DIRECT_CONNECT(EGU10_IRQn, 5, egu0_handler, 0);
-	nrf_egu_int_enable(NRF_EGU10, NRF_EGU_INT_TRIGGERED4);
-	NVIC_EnableIRQ(EGU10_IRQn);
+	/* Radio events are published on predefined channels. */
+	nrf_egu_subscribe_set(NRF_EGU, EGU_TASK, MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX);
 #endif
-#elif defined(CONFIG_SOC_SERIES_NRF54HX)
-#if 0
-	/* Radio events are published on predefined channels.
-	 */
-	uint8_t ready_channel = MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX;
 
-	NRF_DPPI_ENDPOINT_SETUP(nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT),
-				ready_channel);
-	nrf_dppi_channels_enable(NRF_DPPIC020, BIT(ready_channel));
-	nrf_dppi_channels_enable(NRF_DPPIC030, BIT(ready_channel));
-	nrf_dppi_channels_enable(NRF_DPPIC130, BIT(ready_channel));
-
-//	nrf_ppib_subscribe_set(NRF_PPIB020, NRF_PPIB_TASK_SEND_0, ready_channel);
-//	nrf_ppib_publish_set(NRF_PPIB134, NRF_PPIB_EVENT_RECEIVE_0, ready_channel);
-
-//	nrf_dppi_channels_enable(NRF_DPPIC020, BIT(ready_channel));
-//	nrf_dppi_channels_enable(NRF_DPPIC133, BIT(ready_channel));
-#else
-	nrf_egu_subscribe_set(NRF_EGU020, NRF_EGU_TASK_TRIGGER4, MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX);
-	IRQ_DIRECT_CONNECT(EGU020_IRQn, 5, egu0_handler, 0);
-	nrf_egu_int_enable(NRF_EGU020, NRF_EGU_INT_TRIGGERED4);
-	NVIC_EnableIRQ(EGU020_IRQn);
-#endif
-#endif
+	IRQ_DIRECT_CONNECT(DT_IRQN(EGU_NODE), 5, egu_handler, 0);
+	nrf_egu_int_enable(NRF_EGU, EGU_INT);
+	NVIC_EnableIRQ(DT_IRQN(EGU_NODE));
 }
 
 static void setup_grant_pin(void)

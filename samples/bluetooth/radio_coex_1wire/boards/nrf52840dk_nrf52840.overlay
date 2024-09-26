@@ -16,7 +16,7 @@
 	};
 
 	aliases {
-		timer = &timer1;
+		egu = &egu0;
 	};
 };
 
