@@ -17,4 +17,5 @@ project("External radio Bluetooth coexistence sample")
 target_sources(app PRIVATE
   src/main.c
 )
+zephyr_include_directories(${ZEPHYR_BASE})
 # NORDIC SDK APP END

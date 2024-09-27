@@ -25,23 +25,10 @@
 /* Predefined channels for radio events. */
 #include <protocol/mpsl_dppi_protocol_api.h>
 
+#include <zephyr/drivers/clock_control/nrf_clock_control.h>
+
 #define APP_COUNTER ((NRF_TIMER_Type *) DT_REG_ADDR(DT_ALIAS(timer)))
 #define APP_COUNTER_RADIO_ACTIVITY_CC 0
-
-#if DT_NODE_HAS_STATUS(DT_PHANDLE(DT_NODELABEL(radio), coex), okay)
-#define COEX_NODE DT_PHANDLE(DT_NODELABEL(radio), coex)
-#else
-#define COEX_NODE DT_INVALID_NODE
-#error No enabled coex nodes registered in DTS.
-#endif
-
-#define ZEPHYR_USER_NODE DT_PATH(zephyr_user)
-#if DT_NODE_HAS_PROP(ZEPHYR_USER_NODE, coex_pta_grant_gpios)
-#define APP_GRANT_GPIO_PIN NRF_DT_GPIOS_TO_PSEL(ZEPHYR_USER_NODE, coex_pta_grant_gpios)
-#else
-#error "Unsupported board: see README and check /zephyr,user node"
-#define APP_GRANT_GPIO_PIN 0
-#endif
 
 #define APP_GRANT_ACTIVE_LOW                                                                       \
 	(GPIO_ACTIVE_LOW & DT_GPIO_FLAGS(COEX_NODE, grant_gpios) ? true : false)
@@ -54,42 +41,26 @@ static const struct bt_data ad[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
 
-static void print_welcome_message(void)
+static const struct device *sample_clock_dev = DEVICE_DT_GET(DT_CLOCKS_CTLR(DT_NODELABEL(timer022)));
+static struct onoff_client cli;
+
+#define CONFIG_SAMPLE_CLOCK_FREQUENCY_HZ 16000000
+#define CONFIG_SAMPLE_CLOCK_ACCURACY_PPM NRF_CLOCK_CONTROL_ACCURACY_MAX
+#define CONFIG_SAMPLE_CLOCK_PRECISION 0
+
+#define SAMPLE_NOTIFY_TIMEOUT       K_SECONDS(2)
+
+static const struct nrf_clock_spec spec = {
+	.frequency = CONFIG_SAMPLE_CLOCK_FREQUENCY_HZ,
+	.accuracy = CONFIG_SAMPLE_CLOCK_ACCURACY_PPM,
+	.precision = CONFIG_SAMPLE_CLOCK_PRECISION,
+};
+
+static K_SEM_DEFINE(sample_sem, 0, 1);
+
+static void sample_notify_cb(void)
 {
-	if (console_init()) {
-		__ASSERT(false, "Failed to initialise console");
-	}
-
-	printk("-----------------------------------------------------\n");
-	printk("This sample illustrates the 1Wire coex interface\n");
-	printk("The number of radio events is printed every second.\n");
-	printk("\n");
-	printk("Press a key to change the state of the grant line:\n");
-	if (APP_GRANT_ACTIVE_LOW) {
-		printk("'g' to set the grant line to low and allow radio activity\n");
-		printk("'d' to set the grant line to high and deny radio activity\n");
-	} else {
-		printk("'g' to set the grant line to high and allow radio activity\n");
-		printk("'d' to set the grant line to low and deny radio activity\n");
-	}
-	printk("-----------------------------------------------------\n");
-}
-
-static void check_input(void)
-{
-	char input_char;
-
-	input_char = console_getchar();
-
-	if ((input_char == 'g') ^ APP_GRANT_ACTIVE_LOW) {
-		nrf_gpio_pin_set(APP_GRANT_GPIO_PIN);
-		printk("Current state is: Grant every request\n");
-	} else if ((input_char == 'd') ^ APP_GRANT_ACTIVE_LOW) {
-		nrf_gpio_pin_clear(APP_GRANT_GPIO_PIN);
-		printk("Current state is: Deny every request\n");
-	} else {
-		return;
-	}
+	k_sem_give(&sample_sem);
 }
 
 static void console_print_thread(void)
@@ -107,68 +78,71 @@ static void console_print_thread(void)
 	}
 }
 
-#if defined(PPI_PRESENT)
-static uint8_t allocate_gppi_channel(void)
+static int clock_setup(void)
 {
-	uint8_t channel;
+	int ret;
+	int res;
+	int64_t req_start_uptime;
+	int64_t req_stop_uptime;
 
-	if (nrfx_gppi_channel_alloc(&channel) != NRFX_SUCCESS) {
-		__ASSERT(false, "(D)PPI channel allocation error");
+	printk("\n");
+	printk("minimum frequency request: %uHz\n", CONFIG_SAMPLE_CLOCK_FREQUENCY_HZ);
+	printk("minimum accuracy request: %uPPM\n", CONFIG_SAMPLE_CLOCK_ACCURACY_PPM);
+	printk("minimum precision request: %u\n", CONFIG_SAMPLE_CLOCK_PRECISION);
+
+	sys_notify_init_callback(&cli.notify, sample_notify_cb);
+
+	printk("\n");
+	printk("requesting minimum clock specs\n");
+	req_start_uptime = k_uptime_get();
+	ret = nrf_clock_control_request(sample_clock_dev, &spec, &cli);
+	if (ret < 0) {
+		printk("minimum clock specs could not be met\n");
+		return 0;
 	}
-	return channel;
+
+	ret = k_sem_take(&sample_sem, SAMPLE_NOTIFY_TIMEOUT);
+	if (ret < 0) {
+		printk("timed out waiting for clock to meet request\n");
+		return 0;
+	}
+
+	req_stop_uptime = k_uptime_get();
+
+	ret = sys_notify_fetch_result(&cli.notify, &res);
+	if (ret < 0) {
+		printk("sys notify fetch failed\n");
+		return 0;
+	}
+
+	if (res < 0) {
+		printk("failed to apply request to clock\n");
+		return 0;
+	}
+
+	printk("request applied to clock in %llims\n", req_stop_uptime - req_start_uptime);
+
+	return 0;
 }
-#endif
 
 static void setup_radio_event_counter(void)
 {
 	/* This function sets up a timer as a counter to count radio events. */
 	nrf_timer_mode_set(APP_COUNTER, NRF_TIMER_MODE_LOW_POWER_COUNTER);
 
-#if defined(PPI_PRESENT)
-	nrf_ppi_channel_t channel = allocate_gppi_channel();
-
-	nrfx_gppi_channel_endpoints_setup(
-		channel, nrf_radio_event_address_get(NRF_RADIO, NRF_RADIO_EVENT_READY),
-
-		nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT));
-	nrfx_ppi_channel_enable(channel);
-#elif defined(CONFIG_SOC_SERIES_NRF54LX)
 	/* Radio events are published on predefined channels.
 	 */
 	uint8_t ready_channel = MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX;
 
 	NRF_DPPI_ENDPOINT_SETUP(nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT),
 				ready_channel);
-	nrf_ppib_subscribe_set(NRF_PPIB11, NRF_PPIB_TASK_SEND_0, ready_channel);
-	nrf_ppib_publish_set(NRF_PPIB21, NRF_PPIB_EVENT_RECEIVE_0, ready_channel);
-
-	nrf_dppi_channels_enable(NRF_DPPIC10, BIT(ready_channel));
-	nrf_dppi_channels_enable(NRF_DPPIC20, BIT(ready_channel));
-#elif defined(CONFIG_SOC_SERIES_NRF54HX)
-	/* Radio events are published on predefined channels.
-	 */
-	uint8_t ready_channel = MPSL_DPPI_RADIO_PUBLISH_READY_CHANNEL_IDX;
-
-	NRF_DPPI_ENDPOINT_SETUP(nrf_timer_task_address_get(APP_COUNTER, NRF_TIMER_TASK_COUNT),
-				ready_channel);
-#endif
-}
-
-static void setup_grant_pin(void)
-{
-	nrf_gpio_cfg_output(APP_GRANT_GPIO_PIN);
-	if (APP_GRANT_ACTIVE_LOW) {
-		nrf_gpio_pin_clear(APP_GRANT_GPIO_PIN);
-		printk("Grant line is set to: %s\n", APP_GRANT_ACTIVE_LOW ? "low" : "high");
-	} else {
-		nrf_gpio_pin_set(APP_GRANT_GPIO_PIN);
-		printk("Grant line is set to: %s\n", APP_GRANT_ACTIVE_LOW ? "low" : "high");
-	}
 }
 
 int main(void)
 {
 	printk("Starting Radio Coex Demo 1wire on board %s\n", CONFIG_BOARD);
+
+	clock_setup();
 
 	if (bt_enable(NULL)) {
 		printk("Bluetooth init failed");
@@ -177,7 +151,6 @@ int main(void)
 
 	printk("Bluetooth initialized\n");
 
-	setup_grant_pin();
 	setup_radio_event_counter();
 
 	if (bt_le_adv_start(BT_LE_ADV_NCONN, ad, ARRAY_SIZE(ad), NULL, 0)) {
@@ -187,11 +160,8 @@ int main(void)
 
 	printk("Advertising started\n");
 
-	print_welcome_message();
-
 	while (1) {
-		k_sleep(K_MSEC(100));
-		check_input();
+		k_sleep(K_FOREVER);
 	}
 }
 

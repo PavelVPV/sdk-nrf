@@ -5,55 +5,37 @@
  */
 
 / {
-	zephyr,user {
-		coex-pta-grant-gpios = <&gpio9 0 GPIO_ACTIVE_HIGH>;
+/*
+	chosen {
+		zephyr,console = &uart136;
+		zephyr,shell-uart = &uart136;
 	};
-
-	dummy_node {
-		status = "okay";
-		coex-pta-grant-gpios = <&gpio9 0 GPIO_ACTIVE_HIGH>;
-		compatible = "coex-pta-grant-gpios";
-	};
-
-	nrf_radio_coex: radio_coex_one_wire {
-		status = "okay";
-		compatible = "sdc-radio-coex-one-wire";
-		grant-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
-		concurrency-mode = <0>;
-	};
-
+*/
 	aliases {
-		timer = &timer021;
+		timer = &timer022;
 	};
 };
 
-&gpio0 {
-	status = "okay";
-};
-
-&gpio1 {
-	status = "okay";
-};
-
-&gpio9 {
-	status = "okay";
-};
-
-&gpiote130 {
-	status = "okay";
-	owned-channels = <0 1 2 3 4 5 6 7>;
-};
-
-&radio {
-	coex = <&nrf_radio_coex>;
-};
-
-&timer021 {
+&timer022 {
 	status = "okay";
 };
 
 &dppic020 {
 	status = "okay";
-	source-channels = < 4 >;
-	sink-channels = < 4 >;
+	source-channels = < 0 1 4 >;
+	sink-channels = < 2 3 4 >;
 };
+/*
+&uart136 {
+	status = "okay";
+	memory-regions = <&cpurad_dma_region>;
+};
+
+&cpuapp_dma_region {
+	reg = <0xe80 0x80>;
+};
+
+&cpurad_dma_region {
+	reg = <0xf00 DT_SIZE_K(4)>;
+};
+*/
