@@ -45,6 +45,8 @@ int timed_led_toggle_init(void)
 		return err;
 	}
 
+	printk("GPIOTE instance: %d, %d\n", gpiote.drv_inst_idx, GPIOTE_INST);
+
 	if (nrfx_gpiote_channel_alloc(&gpiote, &gpiote_chan_led_toggle) != NRFX_SUCCESS) {
 		printk("Failed allocating GPIOTE chan for setting led\n");
 		return -ENOMEM;
@@ -57,7 +59,11 @@ int timed_led_toggle_init(void)
 			NRF_GPIOTE_INITIAL_VALUE_LOW : NRF_GPIOTE_INITIAL_VALUE_HIGH,
 	};
 
-	if (nrfx_gpiote_output_configure(&gpiote, led.pin, &gpiote_output_cfg,
+	nrfx_gpiote_pin_t abs_pin = NRF_GPIO_PIN_MAP(1, led.pin);
+
+	printk("abs_pin %d, pin %d\n", abs_pin, led.pin);
+
+	if (nrfx_gpiote_output_configure(&gpiote, abs_pin, &gpiote_output_cfg,
 					 &task_cfg_led_toggle) != NRFX_SUCCESS) {
 		printk("Failed configuring GPIOTE chan for toggling led\n");
 		return -ENOMEM;
@@ -68,12 +74,14 @@ int timed_led_toggle_init(void)
 		return -ENOMEM;
 	}
 
+	printk("PPI channel %d allocated for toggling LED\n", ppi_chan_led_toggle);
+
 	nrfx_gppi_channel_endpoints_setup(ppi_chan_led_toggle,
 					  controller_time_trigger_event_addr_get(),
-					  nrfx_gpiote_out_task_address_get(&gpiote, led.pin));
+					  nrfx_gpiote_out_task_address_get(&gpiote, abs_pin));
 
 	nrfx_gppi_channels_enable(BIT(ppi_chan_led_toggle));
-	nrfx_gpiote_out_task_enable(&gpiote, led.pin);
+	nrfx_gpiote_out_task_enable(&gpiote, abs_pin);
 
 	return 0;
 }

@@ -24,6 +24,8 @@ int controller_time_init(void)
 		return -ENODEV;
 	}
 
+	printk("GRTC channel allocated: %d\n", grtc_channel);
+
 	nrf_grtc_sys_counter_compare_event_enable(NRF_GRTC, grtc_channel);
 
 	return 0;
