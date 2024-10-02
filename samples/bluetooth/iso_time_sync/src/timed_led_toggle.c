@@ -18,6 +18,7 @@
 #include <nrfx_gpiote.h>
 #include <helpers/nrfx_gppi.h>
 #include "iso_time_sync.h"
+#include <zephyr/devicetree.h>
 
 #define GPIOTE_INST NRF_DT_GPIOTE_INST(DT_ALIAS(led1), gpios)
 #define GPIOTE_NODE DT_NODELABEL(_CONCAT(gpiote, GPIOTE_INST))
@@ -59,9 +60,10 @@ int timed_led_toggle_init(void)
 			NRF_GPIOTE_INITIAL_VALUE_LOW : NRF_GPIOTE_INITIAL_VALUE_HIGH,
 	};
 
-	nrfx_gpiote_pin_t abs_pin = NRF_GPIO_PIN_MAP(1, led.pin);
+	int port = DT_PROP(DT_PHANDLE(DT_ALIAS(led1), gpios), port);
+	nrfx_gpiote_pin_t abs_pin = NRF_GPIO_PIN_MAP(port, led.pin);
 
-	printk("abs_pin %d, pin %d\n", abs_pin, led.pin);
+	printk("abs_pin %d, pin %d, port: %d\n", abs_pin, led.pin, port);
 
 	if (nrfx_gpiote_output_configure(&gpiote, abs_pin, &gpiote_output_cfg,
 					 &task_cfg_led_toggle) != NRFX_SUCCESS) {
