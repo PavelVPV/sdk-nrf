@@ -83,10 +83,10 @@ BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 
 #define EXPAND(x) x
 
-#define bt_mesh_model_cfg_srv_MACRO(name) EXPAND(BT_MESH_MODEL_CFG_SRV)
-#define bt_mesh_model_health_srv_MACRO(name) EXPAND(BT_MESH_MODEL_HEALTH_SRV(&name, &health_pub))
-#define bt_mesh_model_onoff_cli_MACRO(name) EXPAND(BT_MESH_MODEL_ONOFF_CLI(&name))
-#define bt_mesh_model_ponoff_srv_MACRO(name) EXPAND(BT_MESH_MODEL_PONOFF_SRV(&name))
+#define bt_mesh_model_cfg_srv_MACRO(model) EXPAND(BT_MESH_MODEL_CFG_SRV)
+#define bt_mesh_model_health_srv_MACRO(model) EXPAND(BT_MESH_MODEL_HEALTH_SRV(&DT_STRING_TOKEN(model, vname), DT_STRING_UNQUOTED_BY_IDX(model, vargs, 0)))
+#define bt_mesh_model_onoff_cli_MACRO(model) EXPAND(BT_MESH_MODEL_ONOFF_CLI(&DT_STRING_TOKEN(model, vname)))
+#define bt_mesh_model_ponoff_srv_MACRO(model) EXPAND(BT_MESH_MODEL_PONOFF_SRV(&DT_STRING_TOKEN(model, vname)))
 
 
 //#define MACRO_FROM_COMPAT(compat) compat##_MACRO
@@ -100,7 +100,7 @@ BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 /**
  * @param model - dts model
  */
-#define DT_BT_MESH_MODEL_INIT(model) EXPAND_AND_CONCAT(DT_STRING_TOKEN(model, cmodel), _MACRO)(DT_STRING_TOKEN(model, vname)),
+#define DT_BT_MESH_MODEL_INIT(model) EXPAND_AND_CONCAT(DT_STRING_TOKEN(model, cmodel), _MACRO)(model),
 
 /**
  * @param element - dts element

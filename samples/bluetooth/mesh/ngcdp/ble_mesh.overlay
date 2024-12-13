@@ -13,6 +13,7 @@
 					model-health-srv {
 						vname = "health_srv";
 						cmodel = "bt-mesh-model-health-srv";
+						vargs = "&health_pub";
 						compatible = "bt-mesh-model";
 					};
 					model-onoff-cli-0 {
