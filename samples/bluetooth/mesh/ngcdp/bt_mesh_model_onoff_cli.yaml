@@ -1,0 +1,10 @@
+# ble_mesh.yaml
+description: Bt Mesh Element properties
+
+compatible: "bt-mesh-model-onoff-cli"
+
+properties:
+  name:
+    type: string
+    description: Model context name
+    required: true

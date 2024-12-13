@@ -1,0 +1,17 @@
+# ble_mesh.yaml
+description: Bt Mesh Model properties
+
+include: base.yaml
+
+compatible: "bt-mesh-model"
+
+properties:
+  cmodel:
+    type: string
+    description: Model spec compatible
+    required: true
+
+  vname:
+    type: string
+    description: Model variable name
+    required: true

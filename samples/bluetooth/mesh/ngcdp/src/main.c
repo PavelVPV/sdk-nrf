@@ -25,9 +25,9 @@ static struct bt_mesh_onoff_cli onoff_cli;
 
 #define EXPAND(x) x
 
-#define bt_mesh_model_cfg_srv_MACRO EXPAND(BT_MESH_MODEL_CFG_SRV)
-#define bt_mesh_model_health_srv_MACRO EXPAND(BT_MESH_MODEL_HEALTH_SRV(NULL, NULL))
-#define bt_mesh_model_onoff_cli_MACRO EXPAND(BT_MESH_MODEL_ONOFF_CLI(&onoff_cli))
+#define bt_mesh_model_cfg_srv_MACRO(name) EXPAND(BT_MESH_MODEL_CFG_SRV)
+#define bt_mesh_model_health_srv_MACRO(name) EXPAND(BT_MESH_MODEL_HEALTH_SRV(NULL, NULL))
+#define bt_mesh_model_onoff_cli_MACRO(name) EXPAND(BT_MESH_MODEL_ONOFF_CLI(&name))
 
 
 //#define MACRO_FROM_COMPAT(compat) compat##_MACRO
@@ -38,9 +38,14 @@ static struct bt_mesh_onoff_cli onoff_cli;
 #define CONCAT2(a, b) a##b
 #define EXPAND_AND_CONCAT(a, b) CONCAT2(a, b)
 
-#define DT_BT_MESH_MODEL_INIT(model) EXPAND_AND_CONCAT(DT_STRING_TOKEN_BY_IDX(model, compatible, 0), _MACRO),
+/**
+ * @param model - dts model
+ */
+#define DT_BT_MESH_MODEL_INIT(model) EXPAND_AND_CONCAT(DT_STRING_TOKEN(model, cmodel), _MACRO)(DT_STRING_TOKEN(model, vname)),
 
-
+/**
+ * @param element - dts element
+ */
 #define MODELS(element) \
 	((struct bt_mesh_model[]) { DT_FOREACH_CHILD(DT_CHILD(element, models), DT_BT_MESH_MODEL_INIT) })
 

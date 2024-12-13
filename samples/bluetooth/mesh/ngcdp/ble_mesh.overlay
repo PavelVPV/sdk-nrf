@@ -3,16 +3,22 @@
 		elements {
 			element_1 {
 				location = <1>;
-				compatible = "bt,mesh-element";
+				compatible = "bt-mesh-element";
 				models {
 					model-cfg-srv {
-						compatible = "bt,mesh-model-cfg-srv";
+						vname = "cfg-srv";
+						cmodel = "bt-mesh-model-cfg-srv";
+						compatible = "bt-mesh-model";
 					};
 					model-health-srv {
-						compatible = "bt,mesh-model-health-srv";
+						vname = "health_srv";
+						cmodel = "bt-mesh-model-health-srv";
+						compatible = "bt-mesh-model";
 					};
 					model-onoff-cli-0 {
-						compatible = "bt,mesh-model-onoff-cli";
+						vname = "onoff_cli";
+						cmodel = "bt-mesh-model-onoff-cli";
+						compatible = "bt-mesh-model";
 					};
 				};
 			};
