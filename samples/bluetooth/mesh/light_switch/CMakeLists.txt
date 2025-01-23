@@ -11,7 +11,8 @@ project(mesh_light_switch)
 # NORDIC SDK APP START
 target_sources(app PRIVATE
 	src/main.c
-	src/model_handler.c)
+	src/model_handler.c
+	src/tc_to_psa_converter.c)
 target_include_directories(app PRIVATE include)
 
 # NORDIC SDK APP END
