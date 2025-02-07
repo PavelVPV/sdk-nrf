@@ -860,6 +860,7 @@ static int bt_mesh_lightness_srv_init(const struct bt_mesh_model *model)
 		return err;
 	}
 #endif
+
 	return 0;
 }
 
