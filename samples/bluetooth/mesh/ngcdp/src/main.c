@@ -15,7 +15,9 @@
 #include <zephyr/bluetooth/mesh.h>
 #include <bluetooth/mesh/models.h>
 
+#if 0
 #include <zephyr/devicetree.h>
+#endif
 
 static struct bt_mesh_onoff_cli onoff_cli;
 static struct bt_mesh_ponoff_srv ponoff_srv;
@@ -75,6 +77,7 @@ static struct bt_mesh_health_srv health_srv = {
 
 BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 
+#if 0
 /* Define your mesh element nodes */
 #define MESH_NODE DT_PATH(mesh) //DT_NODELABEL(mesh)
 
@@ -87,7 +90,6 @@ BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 #define bt_mesh_model_health_srv_MACRO(model) EXPAND(BT_MESH_MODEL_HEALTH_SRV(&DT_STRING_TOKEN(model, vname), DT_STRING_UNQUOTED_BY_IDX(model, vargs, 0)))
 #define bt_mesh_model_onoff_cli_MACRO(model) EXPAND(BT_MESH_MODEL_ONOFF_CLI(&DT_STRING_TOKEN(model, vname)))
 #define bt_mesh_model_ponoff_srv_MACRO(model) EXPAND(BT_MESH_MODEL_PONOFF_SRV(&DT_STRING_TOKEN(model, vname)))
-
 
 //#define MACRO_FROM_COMPAT(compat) compat##_MACRO
 
@@ -119,6 +121,11 @@ BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 
 struct bt_mesh_elem elements[] = {
 	DT_FOREACH_CHILD_SEP(DT_CHILD(MESH_NODE, elements), DT_BT_MESH_ELEM_INIT, (,))
+};
+#endif
+
+struct bt_mesh_elem elements[] = {
+	DT_BT_MESH_ELEMS
 };
 
 static const struct bt_mesh_comp comp = {

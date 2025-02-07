@@ -9,6 +9,8 @@
 
 #include <zephyr/bluetooth/mesh.h>
 
+#include <bluetooth/mesh/dt.h>
+
 #include <bluetooth/mesh/model_types.h>
 
 /* Foundation models */
