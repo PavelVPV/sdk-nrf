@@ -1122,19 +1122,27 @@ const struct bt_mesh_model_cb _bt_mesh_sensor_srv_cb = {
 static int sensor_setup_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_sensor_srv *srv = model->rt->user_data;
-#if defined(CONFIG_BT_MESH_COMP_PAGE_1)
-	int err = bt_mesh_model_correspond(model, srv->model);
 
-	if (err) {
-		return err;
+	bt_mesh_model_correspond(model, srv->model);
+
+	return 0;
+}
+
+static const struct bt_mesh_model * sensor_setup_srv_extends(const struct bt_mesh_model *model,
+							    const struct bt_mesh_model *ext_model)
+{
+	struct bt_mesh_sensor_srv *srv = model->rt->user_data;
+
+	if (ext_model == NULL) {
+		return srv->model;
 	}
-#endif
 
-	return bt_mesh_model_extend(model, srv->model);
+	return NULL;
 }
 
 const struct bt_mesh_model_cb _bt_mesh_sensor_setup_srv_cb = {
 	.init = sensor_setup_srv_init,
+	.extends = sensor_setup_srv_extends,
 };
 
 int bt_mesh_sensor_srv_pub(struct bt_mesh_sensor_srv *srv,

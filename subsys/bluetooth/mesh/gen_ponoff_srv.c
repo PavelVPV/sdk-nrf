@@ -290,7 +290,19 @@ static int bt_mesh_ponoff_srv_init(const struct bt_mesh_model *model)
 	net_buf_simple_init_with_data(&srv->pub_buf, srv->pub_data,
 				      sizeof(srv->pub_data));
 
-	return bt_mesh_model_extend(model, srv->onoff.model);
+	return 0;
+}
+
+static const struct bt_mesh_model * ponoff_srv_extends(const struct bt_mesh_model *model,
+				 const struct bt_mesh_model *ext_model)
+{
+	struct bt_mesh_ponoff_srv *srv = model->rt->user_data;
+
+	if (ext_model == NULL) {
+		return srv->onoff.model;
+	}
+
+	return NULL;
 }
 
 static void bt_mesh_ponoff_srv_reset(const struct bt_mesh_model *model)
@@ -364,32 +376,39 @@ const struct bt_mesh_model_cb _bt_mesh_ponoff_srv_cb = {
 	.settings_set = bt_mesh_ponoff_srv_settings_set,
 	.pending_store = bt_mesh_ponoff_srv_pending_store,
 #endif
+	.extends = ponoff_srv_extends,
 };
 
 static int bt_mesh_ponoff_setup_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_ponoff_srv *srv = model->rt->user_data;
-	int err;
 
 	srv->ponoff_setup_model = model;
 
-	err = bt_mesh_model_extend(model, srv->ponoff_model);
-	if (err) {
-		return err;
+	bt_mesh_model_correspond(model, srv->ponoff_model);
+
+	return 0;
+}
+
+static const struct bt_mesh_model * ponoff_setup_srv_extends(const struct bt_mesh_model *model,
+				 const struct bt_mesh_model *ext_model)
+{
+	struct bt_mesh_ponoff_srv *srv = model->rt->user_data;
+
+	if (ext_model == NULL) {
+		return srv->ponoff_model;
 	}
 
-#if defined(CONFIG_BT_MESH_COMP_PAGE_1)
-	err = bt_mesh_model_correspond(model, srv->ponoff_model);
-	if (err) {
-		return err;
+	if (ext_model == srv->ponoff_model) {
+		return srv->dtt.model;
 	}
-#endif
 
-	return bt_mesh_model_extend(model, srv->dtt.model);
+	return NULL;
 }
 
 const struct bt_mesh_model_cb _bt_mesh_ponoff_setup_srv_cb = {
 	.init = bt_mesh_ponoff_setup_srv_init,
+	.extends = ponoff_setup_srv_extends,
 };
 
 void bt_mesh_ponoff_srv_set(struct bt_mesh_ponoff_srv *srv,
