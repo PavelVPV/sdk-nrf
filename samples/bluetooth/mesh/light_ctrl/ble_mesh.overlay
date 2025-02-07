@@ -1,0 +1,49 @@
+/ {
+	mesh: mesh {
+		elements {
+			element_1 {
+				location = <1>;
+				compatible = "bt-mesh-element";
+				models {
+					model-cfg-srv {
+						vname = "cfg_srv";
+						cmodel = "bt-mesh-model-cfg-srv";
+						compatible = "bt-mesh-model";
+					};
+					model-health-srv {
+						vname = "health_srv";
+						cmodel = "bt-mesh-model-health-srv";
+						vargs = "&health_pub";
+						compatible = "bt-mesh-model";
+					};
+					model-lightness-srv {
+						vname = "my_ctx.lightness_srv";
+						cmodel = "bt-mesh-model-lightness-srv";
+						compatible = "bt-mesh-model";
+					};
+					model-scene-srv {
+						vname = "scene_srv";
+						cmodel = "bt-mesh-model-scene-srv";
+						compatible = "bt-mesh-model";
+					};
+					model-sensor-srv {
+						vname = "sensor_srv";
+						cmodel = "bt-mesh-model-sensor-srv";
+						compatible = "bt-mesh-model";
+					};
+				};
+			};
+			element_2 {
+				location = <2>;
+				compatible = "bt-mesh-element";
+				models {
+					model-light-ctrl-srv {
+						vname = "light_ctrl_srv";
+						cmodel = "bt-mesh-model-light-ctrl-srv";
+						compatible = "bt-mesh-model";
+					};
+				};
+			};
+		};
+	};
+};

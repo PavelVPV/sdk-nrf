@@ -1,0 +1,29 @@
+# ble_mesh.yaml
+description: Bt Mesh Element properties
+
+include: base.yaml
+
+compatible: "bt-mesh-element"
+
+properties:
+  location:
+    type: int
+    description: Element index
+    required: true
+
+      #child-binding:
+      #  description: Bt Mesh Models list
+      #
+      #  child-binding:
+      #    description: Bt Mesh Model
+      #
+      #    properties:
+      #      model:
+      #        type: string
+      #        description: Model spec compatible
+      #        required: true
+      #
+      #      name:
+      #        type: string
+      #        description: Model variable name
+      #        required: true

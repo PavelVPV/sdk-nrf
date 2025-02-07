@@ -30,6 +30,10 @@ extern "C" {
 #define bt_mesh_model_health_srv_MACRO(model) EXPAND(BT_MESH_MODEL_HEALTH_SRV(&DT_STRING_TOKEN(model, vname), DT_STRING_UNQUOTED_BY_IDX(model, vargs, 0)))
 #define bt_mesh_model_onoff_cli_MACRO(model) EXPAND(BT_MESH_MODEL_ONOFF_CLI(&DT_STRING_TOKEN(model, vname)))
 #define bt_mesh_model_ponoff_srv_MACRO(model) EXPAND(BT_MESH_MODEL_PONOFF_SRV(&DT_STRING_TOKEN(model, vname)))
+#define bt_mesh_model_lightness_srv_MACRO(model) EXPAND(BT_MESH_MODEL_LIGHTNESS_SRV(&DT_STRING_UNQUOTED(model, vname)))
+#define bt_mesh_model_light_ctrl_srv_MACRO(model) EXPAND(BT_MESH_MODEL_LIGHT_CTRL_SRV(&DT_STRING_TOKEN(model, vname)))
+#define bt_mesh_model_scene_srv_MACRO(model) EXPAND(BT_MESH_MODEL_SCENE_SRV(&DT_STRING_TOKEN(model, vname)))
+#define bt_mesh_model_sensor_srv_MACRO(model) EXPAND(BT_MESH_MODEL_SENSOR_SRV(&DT_STRING_TOKEN(model, vname)))
 
 #define CONCAT2(a, b) a##b
 #define EXPAND_AND_CONCAT(a, b) CONCAT2(a, b)

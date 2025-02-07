@@ -238,6 +238,7 @@ static struct bt_mesh_scene_srv scene_srv;
 static struct bt_mesh_light_ctrl_srv light_ctrl_srv =
 	BT_MESH_LIGHT_CTRL_SRV_INIT(&my_ctx.lightness_srv);
 
+#if 0
 static struct bt_mesh_elem elements[] = {
 	BT_MESH_ELEM(1,
 		     BT_MESH_MODEL_LIST(
@@ -253,6 +254,9 @@ static struct bt_mesh_elem elements[] = {
 			     BT_MESH_MODEL_LIGHT_CTRL_SRV(&light_ctrl_srv)),
 		     BT_MESH_MODEL_NONE),
 };
+#endif
+
+struct bt_mesh_elem elements[] = { DT_BT_MESH_ELEMS };
 
 static const struct bt_mesh_comp comp = {
 	.cid = CONFIG_BT_COMPANY_ID,
