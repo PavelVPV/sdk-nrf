@@ -820,7 +820,6 @@ static int scene_setup_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_scene_srv *srv = model->rt->user_data;
 	struct bt_mesh_dtt_srv *dtt_srv = NULL;
-	int err;
 
 	if (!srv) {
 		return -EINVAL;
@@ -837,23 +836,33 @@ static int scene_setup_srv_init(const struct bt_mesh_model *model)
 		return -EINVAL;
 	}
 
-	err = bt_mesh_model_extend(srv->setup_mod, dtt_srv->model);
-	if (err) {
-		return err;
+	bt_mesh_model_correspond(model, srv->model);
+
+	return 0;
+}
+
+static const struct bt_mesh_model * scene_setup_srv_extends(const struct bt_mesh_model *model,
+							    const struct bt_mesh_model *ext_model)
+{
+	struct bt_mesh_scene_srv *srv = model->rt->user_data;
+	struct bt_mesh_dtt_srv *dtt_srv = NULL;
+
+	dtt_srv = bt_mesh_dtt_srv_get(bt_mesh_model_elem(model));
+
+	if (ext_model == NULL) {
+		return dtt_srv->model;
 	}
 
-#if defined(CONFIG_BT_MESH_COMP_PAGE_1)
-	err = bt_mesh_model_correspond(srv->setup_mod, srv->model);
-	if (err) {
-		return err;
+	if (ext_model == dtt_srv->model) {
+		return srv->model;
 	}
-#endif
 
-	return bt_mesh_model_extend(srv->setup_mod, srv->model);
+	return NULL;
 }
 
 const struct bt_mesh_model_cb _bt_mesh_scene_setup_srv_cb = {
 	.init = scene_setup_srv_init,
+	.extends = scene_setup_srv_extends,
 };
 
 void bt_mesh_scene_invalidate(const struct bt_mesh_model *mod)
