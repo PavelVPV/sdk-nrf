@@ -44,6 +44,31 @@ config DFU_ZIP_BLUETOOTH_MESH_METADATA
 	help
 	  Includes metadata for bluetooth mesh.
 
+choice DFU_ZIP_BLUETOOTH_MESH_FWID
+	prompt "FWID used for Metadata"
+	default DFU_ZIP_BLUETOOTH_MESH_FWID_CUSTOM
+
+config DFU_ZIP_BLUETOOTH_MESH_FWID_CUSTOM
+	bool "Custom FWID"
+	help
+	  Any FWID used by app
+
+config DFU_ZIP_BLUETOOTH_MESH_FWID_NCS_SAMPLES
+	bool "Use sample's FWID"
+	help
+	  FWID format used by NCS samples
+
+endchoice # DFU_ZIP_BLUETOOTH_MESH_FWID
+
+if DFU_ZIP_BLUETOOTH_MESH_FWID_CUSTOM
+
+config DFU_ZIP_BLUETOOTH_MESH_FWID_CUSTOM_HEX
+	string "Custom FWID as hex string"
+	help
+	  Custom FWID as hex string
+
+endif # DFU_ZIP_BLUETOOTH_MESH_FWID_CUSTOM
+
 endif # BOOTLOADER_MCUBOOT
 
 endif # DFU_ZIP

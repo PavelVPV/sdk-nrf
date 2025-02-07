@@ -380,10 +380,27 @@ def encoded_metadata_get(version, comp, binary_size, core_type):
     bytestring.extend(elem_cnt.to_bytes(2, 'little'))
     return bytestring
 
+def fwid_bytestring_get(mcuboot_ver):
+    try:
+        clean_str = mcuboot_ver.replace("+", ".").replace("\"", "")
+        version_list = [int(s) for s in clean_str.split(".") if s.isdigit()]
+
+        fwid = bytearray()
+        fwid.append(version_list[0])
+        fwid.append(version_list[1])
+        fwid.extend(version_list[2].to_bytes(2, 'little'))
+        fwid.extend(version_list[3].to_bytes(4, 'little'))
+
+        return str(fwid.hex())
+    except Exception as err :
+        raise Exception("Unable to parse CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION Kconfig option") from err
+
 def input_parse():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument('--bin-path', required=True, type=str)
     parser.add_argument('--print-metadata', action='store_true')
+    parser.add_argument('--fwid-ncs-samples', action="store_true")
+    parser.add_argument('--fwid-custom', type=str)
     return parser.parse_known_args()[0]
 
 def existing_metadata_print(path):
@@ -436,6 +453,12 @@ if __name__ == "__main__":
                 "composition_hash": str(hex(comp.hash_generate())),
                 "encoded_metadata": str(encoded_metadata.hex()),
             })
+
+        if args.fwid_ncs_samples:
+            fwid = fwid_bytestring_get(kconfigs['CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION'])
+            json_data[0]["fwid"] = fwid
+        elif args.fwid_custom:
+            json_data[0]["fwid"] = args.fwid_custom
 
         with open(metadata_path, "w") as outfile:
             outfile.write(json.dumps(json_data if len(json_data) > 1 else json_data[0], indent=4))

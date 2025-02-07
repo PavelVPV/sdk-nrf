@@ -10,12 +10,19 @@ function(mesh_dfu_metadata)
   set(metadata_dir ${CMAKE_BINARY_DIR}/${DEFAULT_IMAGE}/zephyr)
   set(metadata_depends ${CMAKE_BINARY_DIR}/dfu_application.zip)
 
+  if(SB_CONFIG_DFU_ZIP_BLUETOOTH_MESH_FWID_CUSTOM)
+    list(APPEND FWID "--fwid-custom" "${SB_CONFIG_DFU_ZIP_BLUETOOTH_MESH_FWID_CUSTOM_HEX}")
+  else()
+    list(APPEND FWID "--fwid-ncs-samples")
+  endif()
+
   add_custom_command(
     OUTPUT ${PROJECT_BINARY_DIR}/dfu_application.zip_ble_mesh_metadata.json
     COMMAND
     ${PYTHON_EXECUTABLE}
     ${ZEPHYR_NRF_MODULE_DIR}/scripts/bluetooth/mesh/mesh_dfu_metadata.py
     --bin-path ${metadata_dir}
+    ${FWID}
     DEPENDS ${metadata_depends}
   )
 
