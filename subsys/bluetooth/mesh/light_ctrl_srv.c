@@ -1767,6 +1767,8 @@ static int lc_setup_srv_init(const struct bt_mesh_model *model)
 	net_buf_simple_init_with_data(&srv->setup_pub_buf, srv->setup_pub_data,
 				      sizeof(srv->setup_pub_data));
 
+	bt_mesh_model_correspond(model, srv->model);
+
 	return 0;
 }
 
@@ -1776,18 +1778,6 @@ static const struct bt_mesh_model * lc_setup_srv_extends(const struct bt_mesh_mo
 	struct bt_mesh_light_ctrl_srv *srv = model->rt->user_data;
 
 	if (ext_model == NULL) {
-		return srv->model;
-	}
-
-	return NULL;
-}
-
-static const struct bt_mesh_model * lc_setup_srv_corresponds(const struct bt_mesh_model *model,
-				     const struct bt_mesh_model *cor_model)
-{
-	struct bt_mesh_light_ctrl_srv *srv = model->rt->user_data;
-
-	if (cor_model == NULL) {
 		return srv->model;
 	}
 
@@ -1830,7 +1820,6 @@ const struct bt_mesh_model_cb _bt_mesh_light_ctrl_setup_srv_cb = {
 	.init = lc_setup_srv_init,
 	.settings_set = lc_setup_srv_settings_set,
 	.extends = lc_setup_srv_extends,
-	.corresponds = lc_setup_srv_corresponds,
 };
 
 /*******************************************************************************

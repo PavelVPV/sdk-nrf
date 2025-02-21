@@ -985,6 +985,8 @@ static int bt_mesh_lightness_setup_srv_init(const struct bt_mesh_model *model)
 
 	srv->lightness_setup_model = model;
 
+	bt_mesh_model_correspond(model, srv->lightness_model);
+
 	return 0;
 }
 
@@ -1004,22 +1006,9 @@ static const struct bt_mesh_model * lightness_setup_srv_extends(const struct bt_
 	return NULL;
 }
 
-static const struct bt_mesh_model * lightness_setup_srv_corresponds(const struct bt_mesh_model *model,
-					    const struct bt_mesh_model *cor_model)
-{
-	struct bt_mesh_lightness_srv *srv = model->rt->user_data;
-
-	if (cor_model == NULL) {
-		return srv->lightness_model;
-	}
-
-	return NULL;
-}
-
 const struct bt_mesh_model_cb _bt_mesh_lightness_setup_srv_cb = {
 	.init = bt_mesh_lightness_setup_srv_init,
 	.extends = lightness_setup_srv_extends,
-	.corresponds = lightness_setup_srv_corresponds,
 };
 
 int bt_mesh_lightness_srv_pub(struct bt_mesh_lightness_srv *srv,
