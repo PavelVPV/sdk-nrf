@@ -36,13 +36,28 @@ struct bt_mesh_lightness_srv;
  *
  * @param[in] _handlers Handler callback structure.
  */
-#define BT_MESH_LIGHTNESS_SRV_INIT(_handlers)                                  \
+#define BT_MESH_LIGHTNESS_SRV_INIT(_srv, _handlers)                                  \
 	{                                                                      \
 		.lvl = BT_MESH_LVL_SRV_INIT(                                   \
 			&_bt_mesh_lightness_srv_lvl_handlers),                 \
 		.ponoff = BT_MESH_PONOFF_SRV_INIT(                             \
 			&_bt_mesh_lightness_srv_onoff_handlers, NULL, NULL),   \
 		.handlers = _handlers,                                         \
+		.lightness_model = & (const struct bt_mesh_model) BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV,        \
+			 _bt_mesh_lightness_srv_op, &(_srv).pub,              \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lightness_srv, \
+						 &_srv),                        \
+			 &_bt_mesh_lightness_srv_cb, \
+			 BT_MESH_MODEL_EXTENDS((_srv).ponoff.ponoff_model, (_srv).lvl.model, NULL), \
+			 BT_MESH_MODEL_CORRESPONDS(NULL)),             \
+		.lightness_setup_model = & (const struct bt_mesh_model) BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV,           \
+			 _bt_mesh_lightness_setup_srv_op, NULL,                \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lightness_srv, \
+						 &_srv),                        \
+			 &_bt_mesh_lightness_setup_srv_cb, \
+			 BT_MESH_MODEL_EXTENDS((_srv).lightness_model, (_srv).ponoff.ponoff_setup_model, NULL), \
+			 BT_MESH_MODEL_CORRESPONDS((_srv).lightness_model, NULL))             \
+
 	}
 
 /** @def BT_MESH_MODEL_LIGHTNESS_SRV
@@ -57,16 +72,9 @@ struct bt_mesh_lightness_srv;
 #define BT_MESH_MODEL_LIGHTNESS_SRV(_srv, ...)                                 \
 	BT_MESH_MODEL_LVL_SRV(&(_srv)->lvl),                                   \
 	BT_MESH_MODEL_PONOFF_SRV(&(_srv)->ponoff),                             \
-	BT_MESH_MODEL_METADATA_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV,        \
-			 _bt_mesh_lightness_srv_op, &(_srv)->pub,              \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lightness_srv, \
-						 _srv),                        \
-			 &_bt_mesh_lightness_srv_cb, __VA_ARGS__),             \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV,           \
-			 _bt_mesh_lightness_setup_srv_op, NULL,                \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lightness_srv, \
-						 _srv),                        \
-			 &_bt_mesh_lightness_setup_srv_cb)
+	(_srv)->lightness_model, \
+	(_srv)->lightness_setup_model
+
 
 /** The Light Purpose Metadata ID. */
 #define BT_MESH_LIGHT_PURPOSE_METADATA_ID 0x0002

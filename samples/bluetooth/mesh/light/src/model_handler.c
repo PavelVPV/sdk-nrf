@@ -30,16 +30,16 @@ struct led_ctx {
 
 static struct led_ctx led_ctx[] = {
 #if DT_NODE_EXISTS(DT_ALIAS(led0))
-	{ .srv = BT_MESH_ONOFF_SRV_INIT(&onoff_handlers) },
+	{ .srv = BT_MESH_ONOFF_SRV_INIT(led_ctx[0].srv, &onoff_handlers) },
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led1))
-	{ .srv = BT_MESH_ONOFF_SRV_INIT(&onoff_handlers) },
+	{ .srv = BT_MESH_ONOFF_SRV_INIT(led_ctx[1].srv, &onoff_handlers) },
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led2))
-	{ .srv = BT_MESH_ONOFF_SRV_INIT(&onoff_handlers) },
+	{ .srv = BT_MESH_ONOFF_SRV_INIT(led_ctx[2].srv, &onoff_handlers) },
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led3))
-	{ .srv = BT_MESH_ONOFF_SRV_INIT(&onoff_handlers) },
+	{ .srv = BT_MESH_ONOFF_SRV_INIT(led_ctx[3].srv, &onoff_handlers) },
 #endif
 };
 
@@ -181,26 +181,29 @@ BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 static struct bt_mesh_elem elements[] = {
 #if DT_NODE_EXISTS(DT_ALIAS(led0))
 	BT_MESH_ELEM(
-		1, BT_MESH_MODEL_LIST(
-			BT_MESH_MODEL_CFG_SRV,
-			BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
-			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv)),
-		BT_MESH_MODEL_NONE),
+		1, ((const struct bt_mesh_model *[]) {
+			& (const struct bt_mesh_model) BT_MESH_MODEL_CFG_SRV,
+			& (const struct bt_mesh_model) BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
+			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv)}),
+		(const struct bt_mesh_model *[]) { NULL }),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led1))
 	BT_MESH_ELEM(
-		2, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[1].srv)),
-		BT_MESH_MODEL_NONE),
+		2, ((const struct bt_mesh_model *[]) {
+			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[1].srv)}),
+		(const struct bt_mesh_model *[]) { NULL }),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led2))
 	BT_MESH_ELEM(
-		3, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[2].srv)),
-		BT_MESH_MODEL_NONE),
+		3, ((const struct bt_mesh_model *[]) {
+			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[2].srv)}),
+		(const struct bt_mesh_model *[]) { NULL }),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led3))
 	BT_MESH_ELEM(
-		4, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[3].srv)),
-		BT_MESH_MODEL_NONE),
+		4, ((const struct bt_mesh_model *[]) {
+			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[3].srv)}),
+		(const struct bt_mesh_model *[]) { NULL }),
 #endif
 };
 

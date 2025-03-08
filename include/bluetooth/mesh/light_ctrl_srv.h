@@ -40,13 +40,29 @@ struct bt_mesh_light_ctrl_srv;
  *                            server controls.
  *  @param[in] _reg           Pointer to the @ref bt_mesh_light_ctrl_reg to use.
  */
-#define BT_MESH_LIGHT_CTRL_SRV_INIT_WITH_REG(_lightness_srv, _reg)             \
+#define BT_MESH_LIGHT_CTRL_SRV_INIT_WITH_REG(_srv, _lightness_srv, _reg)             \
 	{                                                                      \
 		.cfg = BT_MESH_LIGHT_CTRL_SRV_CFG_INIT,                        \
 		.onoff = BT_MESH_ONOFF_SRV_INIT(                               \
-			&_bt_mesh_light_ctrl_srv_onoff),                       \
+			(_srv).onoff, &_bt_mesh_light_ctrl_srv_onoff),                       \
 		.lightness = _lightness_srv,                                   \
 		.reg = _reg                                                    \
+		.model = & (const struct bt_mesh_model) BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_LIGHT_LC_SRV,   \
+			 _bt_mesh_light_ctrl_srv_op, &(_srv).pub,             \
+			 BT_MESH_MODEL_USER_DATA(                              \
+				 struct bt_mesh_light_ctrl_srv, &_srv),         \
+			 &_bt_mesh_light_ctrl_srv_cb, \
+			 BT_MESH_MODEL_EXTENDS((_srv).lightness->lightness_model, \
+					       (_srv).onoff.model, NULL), \
+			 BT_MESH_MODEL_CORRESPONDS(NULL)), \
+		.setup_srv = & (const struct bt_mesh_model) BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_LIGHT_LC_SETUPSRV, \
+			 _bt_mesh_light_ctrl_setup_srv_op,                     \
+			 &(_srv).setup_pub,                                   \
+			 BT_MESH_MODEL_USER_DATA(                              \
+				 struct bt_mesh_light_ctrl_srv, &_srv),         \
+			 &_bt_mesh_light_ctrl_setup_srv_cb \
+			 BT_MESH_MODEL_EXTENDS((_srv).model, NULL), \
+			 BT_MESH_MODEL_CORRESPONDS((_srv).model, NULL))
 	}
 #endif
 
@@ -85,17 +101,9 @@ struct bt_mesh_light_ctrl_srv;
  */
 #define BT_MESH_MODEL_LIGHT_CTRL_SRV(_srv)                                     \
 	BT_MESH_MODEL_ONOFF_SRV(&(_srv)->onoff),                               \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_LIGHT_LC_SRV,                        \
-			 _bt_mesh_light_ctrl_srv_op, &(_srv)->pub,             \
-			 BT_MESH_MODEL_USER_DATA(                              \
-				 struct bt_mesh_light_ctrl_srv, _srv),         \
-			 &_bt_mesh_light_ctrl_srv_cb),                         \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_LIGHT_LC_SETUPSRV,                   \
-			 _bt_mesh_light_ctrl_setup_srv_op,                     \
-			 &(_srv)->setup_pub,                                   \
-			 BT_MESH_MODEL_USER_DATA(                              \
-				 struct bt_mesh_light_ctrl_srv, _srv),         \
-			 &_bt_mesh_light_ctrl_setup_srv_cb)
+	(_srv)->model, \
+	(_srv)->setup_srv
+
 
 /** Light Lightness Control Server state */
 enum bt_mesh_light_ctrl_srv_state {

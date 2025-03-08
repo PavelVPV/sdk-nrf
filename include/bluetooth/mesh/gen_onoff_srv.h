@@ -30,9 +30,14 @@ struct bt_mesh_onoff_srv;
  *
  * @param[in] _handlers State access handlers to use in the model instance.
  */
-#define BT_MESH_ONOFF_SRV_INIT(_handlers)                                      \
+#define BT_MESH_ONOFF_SRV_INIT(_srv, _handlers)                                      \
 	{                                                                      \
 		.handlers = _handlers,                                         \
+		.model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_ONOFF_SRV,                       \
+			 _bt_mesh_onoff_srv_op, &(_srv).pub,                  \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_onoff_srv,     \
+						 &_srv),                        \
+			 &_bt_mesh_onoff_srv_cb) \
 	}
 
 /** @def BT_MESH_MODEL_ONOFF_SRV
@@ -42,11 +47,7 @@ struct bt_mesh_onoff_srv;
  * @param[in] _srv Pointer to a @ref bt_mesh_onoff_srv instance.
  */
 #define BT_MESH_MODEL_ONOFF_SRV(_srv)                                          \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_ONOFF_SRV,                       \
-			 _bt_mesh_onoff_srv_op, &(_srv)->pub,                  \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_onoff_srv,     \
-						 _srv),                        \
-			 &_bt_mesh_onoff_srv_cb)
+	&(_srv)->model
 
 /** Generic OnOff Server state access handlers. */
 struct bt_mesh_onoff_srv_handlers {
@@ -95,7 +96,7 @@ struct bt_mesh_onoff_srv {
 	/** Handler function structure. */
 	const struct bt_mesh_onoff_srv_handlers *handlers;
 	/** Access model pointer. */
-	const struct bt_mesh_model *model;
+	const struct bt_mesh_model model;
 	/** Publish parameters. */
 	struct bt_mesh_model_pub pub;
 	/* Publication buffer */

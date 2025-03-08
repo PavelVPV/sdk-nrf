@@ -81,7 +81,7 @@ static int onoff_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *
 		model_transition_buf_pull(buf, &transition);
 		set.transition = &transition;
 	} else if (!atomic_test_bit(&srv->flags, GEN_ONOFF_SRV_NO_DTT)) {
-		bt_mesh_dtt_srv_transition_get(srv->model, &transition);
+		bt_mesh_dtt_srv_transition_get(&srv->model, &transition);
 		set.transition = &transition;
 	} else {
 		set.transition = NULL;
@@ -90,7 +90,7 @@ static int onoff_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *
 	srv->handlers->set(srv, ctx, &set, &status);
 
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	(void)bt_mesh_onoff_srv_pub(srv, NULL, &status);
@@ -195,7 +195,6 @@ static int bt_mesh_onoff_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_onoff_srv *srv = model->rt->user_data;
 
-	srv->model = model;
 	srv->pub.msg = &srv->pub_buf;
 	srv->pub.update = update_handler;
 	net_buf_simple_init_with_data(&srv->pub_buf, srv->pub_data,
@@ -221,5 +220,5 @@ int bt_mesh_onoff_srv_pub(struct bt_mesh_onoff_srv *srv,
 	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_ONOFF_OP_STATUS,
 				 BT_MESH_ONOFF_MSG_MAXLEN_STATUS);
 	encode_status(&msg, status);
-	return bt_mesh_msg_send(srv->model, ctx, &msg);
+	return bt_mesh_msg_send(&srv->model, ctx, &msg);
 }
