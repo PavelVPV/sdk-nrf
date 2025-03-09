@@ -50,7 +50,7 @@ static int store_data(struct bt_mesh_ponoff_srv *srv,
 	 * bound with Generic OnOff state, store the value of the bound state
 	 * separately, therefore they don't need to store Generic OnOff state.
 	 */
-	if (bt_mesh_model_is_extended(srv->ponoff_setup_model)) {
+	if (bt_mesh_model_is_extended(&srv->ponoff_setup_model)) {
 		size = sizeof(data.on_power_up);
 	} else {
 		size = sizeof(data);
@@ -69,7 +69,7 @@ static void bt_mesh_ponoff_srv_pending_store(const struct bt_mesh_model *model)
 
 	struct bt_mesh_onoff_status onoff_status = {0};
 
-	if (!bt_mesh_model_is_extended(srv->ponoff_setup_model)) {
+	if (!bt_mesh_model_is_extended(&srv->ponoff_setup_model)) {
 		srv->onoff.handlers->get(&srv->onoff, NULL, &onoff_status);
 	}
 
@@ -176,7 +176,7 @@ static void onoff_intercept_set(struct bt_mesh_onoff_srv *onoff_srv,
 	srv->onoff_handlers->set(onoff_srv, ctx, set, status);
 
 	if ((srv->on_power_up == BT_MESH_ON_POWER_UP_RESTORE) &&
-	    !bt_mesh_model_is_extended(srv->ponoff_setup_model)) {
+	    !bt_mesh_model_is_extended(&srv->ponoff_setup_model)) {
 		store_state(srv);
 	}
 }

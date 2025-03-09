@@ -185,25 +185,25 @@ static struct bt_mesh_elem elements[] = {
 			& (const struct bt_mesh_model) BT_MESH_MODEL_CFG_SRV,
 			& (const struct bt_mesh_model) BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
 			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv)}),
-		(const struct bt_mesh_model *[]) { NULL }),
+		(const struct bt_mesh_model *[]) { }),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led1))
 	BT_MESH_ELEM(
 		2, ((const struct bt_mesh_model *[]) {
 			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[1].srv)}),
-		(const struct bt_mesh_model *[]) { NULL }),
+		(const struct bt_mesh_model *[]) {  }),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led2))
 	BT_MESH_ELEM(
 		3, ((const struct bt_mesh_model *[]) {
 			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[2].srv)}),
-		(const struct bt_mesh_model *[]) { NULL }),
+		(const struct bt_mesh_model *[]) { }),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led3))
 	BT_MESH_ELEM(
 		4, ((const struct bt_mesh_model *[]) {
 			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[3].srv)}),
-		(const struct bt_mesh_model *[]) { NULL }),
+		(const struct bt_mesh_model *[]) {  }),
 #endif
 };
 

@@ -36,7 +36,7 @@ struct bt_mesh_ponoff_srv;
  * @param[in] _on_power_up_change_handler Handler function for changes to the
  * OnPowerUp state.
  */
-#define BT_MESH_PONOFF_SRV_INIT(_onoff_handlers, _dtt_change_handler,          \
+#define BT_MESH_PONOFF_SRV_INIT(_srv, _onoff_handlers, _dtt_change_handler,          \
 				_on_power_up_change_handler)                   \
 	{                                                                      \
 		.onoff = BT_MESH_ONOFF_SRV_INIT(                               \
@@ -44,6 +44,16 @@ struct bt_mesh_ponoff_srv;
 		.dtt = BT_MESH_DTT_SRV_INIT(_dtt_change_handler),              \
 		.onoff_handlers = _onoff_handlers,                             \
 		.update = _on_power_up_change_handler,                         \
+		.ponoff_model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SRV,         \
+				 _bt_mesh_ponoff_srv_op, &(_srv).pub,         \
+				 BT_MESH_MODEL_USER_DATA(                      \
+					 struct bt_mesh_ponoff_srv, &_srv),     \
+				 &_bt_mesh_ponoff_srv_cb),                     \
+		.ponoff_setup_model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SETUP_SRV,   \
+				 _bt_mesh_ponoff_setup_srv_op, NULL,           \
+				 BT_MESH_MODEL_USER_DATA(                      \
+					 struct bt_mesh_ponoff_srv, &_srv),     \
+				 &_bt_mesh_ponoff_setup_srv_cb) \
 	}
 
 /** @def BT_MESH_MODEL_PONOFF_SRV
@@ -54,17 +64,9 @@ struct bt_mesh_ponoff_srv;
  */
 #define BT_MESH_MODEL_PONOFF_SRV(_srv)                                         \
 	BT_MESH_MODEL_ONOFF_SRV(&(_srv)->onoff),                               \
-		BT_MESH_MODEL_DTT_SRV(&(_srv)->dtt),                           \
-		BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SRV,         \
-				 _bt_mesh_ponoff_srv_op, &(_srv)->pub,         \
-				 BT_MESH_MODEL_USER_DATA(                      \
-					 struct bt_mesh_ponoff_srv, _srv),     \
-				 &_bt_mesh_ponoff_srv_cb),                     \
-		BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SETUP_SRV,   \
-				 _bt_mesh_ponoff_setup_srv_op, NULL,           \
-				 BT_MESH_MODEL_USER_DATA(                      \
-					 struct bt_mesh_ponoff_srv, _srv),     \
-				 &_bt_mesh_ponoff_setup_srv_cb)
+	BT_MESH_MODEL_DTT_SRV(&(_srv)->dtt),                           \
+	&(_srv)->ponoff_model, \
+	&(_srv)->ponoff_setup_model
 
 /**
  * Generic Power OnOff Server instance.
@@ -77,9 +79,9 @@ struct bt_mesh_ponoff_srv {
 	/** Generic Default Transition Time server instance. */
 	struct bt_mesh_dtt_srv dtt;
 	/** Pointer to the model entry in the composition data. */
-	const struct bt_mesh_model *ponoff_model;
+	const struct bt_mesh_model ponoff_model;
 	/** Pointer to the model entry of the Setup Server. */
-	const struct bt_mesh_model *ponoff_setup_model;
+	const struct bt_mesh_model ponoff_setup_model;
 	/** Model publication parameters. */
 	struct bt_mesh_model_pub pub;
 	/* Publication buffer */

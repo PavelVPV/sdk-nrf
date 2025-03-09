@@ -43,14 +43,14 @@ struct bt_mesh_lightness_srv;
 		.ponoff = BT_MESH_PONOFF_SRV_INIT(                             \
 			&_bt_mesh_lightness_srv_onoff_handlers, NULL, NULL),   \
 		.handlers = _handlers,                                         \
-		.lightness_model = & (const struct bt_mesh_model) BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV,        \
+		.lightness_model = BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SRV,        \
 			 _bt_mesh_lightness_srv_op, &(_srv).pub,              \
 			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lightness_srv, \
 						 &_srv),                        \
 			 &_bt_mesh_lightness_srv_cb, \
 			 BT_MESH_MODEL_EXTENDS((_srv).ponoff.ponoff_model, (_srv).lvl.model, NULL), \
 			 BT_MESH_MODEL_CORRESPONDS(NULL)),             \
-		.lightness_setup_model = & (const struct bt_mesh_model) BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV,           \
+		.lightness_setup_model = BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_LIGHT_LIGHTNESS_SETUP_SRV,           \
 			 _bt_mesh_lightness_setup_srv_op, NULL,                \
 			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lightness_srv, \
 						 &_srv),                        \
@@ -194,9 +194,9 @@ struct bt_mesh_lightness_srv {
 	/** Internal flag state. */
 	atomic_t flags;
 	/** Pointer to the model entry in the composition data. */
-	const struct bt_mesh_model *lightness_model;
+	const struct bt_mesh_model lightness_model;
 	/** Pointer to the Setup Server model entry in the composition data. */
-	const struct bt_mesh_model *lightness_setup_model;
+	const struct bt_mesh_model lightness_setup_model;
 	/** Model publication parameters. */
 	struct bt_mesh_model_pub pub;
 	/* Publication buffer */
