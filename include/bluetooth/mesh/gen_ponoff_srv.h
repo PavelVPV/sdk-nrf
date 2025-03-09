@@ -39,9 +39,9 @@ struct bt_mesh_ponoff_srv;
 #define BT_MESH_PONOFF_SRV_INIT(_srv, _onoff_handlers, _dtt_change_handler,          \
 				_on_power_up_change_handler)                   \
 	{                                                                      \
-		.onoff = BT_MESH_ONOFF_SRV_INIT(                               \
+		.onoff = BT_MESH_ONOFF_SRV_INIT((_srv).onoff,                               \
 			&_bt_mesh_ponoff_onoff_intercept),                     \
-		.dtt = BT_MESH_DTT_SRV_INIT(_dtt_change_handler),              \
+		.dtt = BT_MESH_DTT_SRV_INIT((_srv).dtt, _dtt_change_handler),              \
 		.onoff_handlers = _onoff_handlers,                             \
 		.update = _on_power_up_change_handler,                         \
 		.ponoff_model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SRV,         \

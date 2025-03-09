@@ -32,9 +32,14 @@ struct bt_mesh_dtt_srv;
  * @param[in] _update Update handler called on every change to the transition
  * time in this server.
  */
-#define BT_MESH_DTT_SRV_INIT(_update)                                          \
+#define BT_MESH_DTT_SRV_INIT(_srv, _update)                                          \
 	{                                                                      \
 		.update = _update,                                             \
+		.model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_DEF_TRANS_TIME_SRV,              \
+			 _bt_mesh_dtt_srv_op, &(_srv).pub,                    \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_dtt_srv,       \
+						 &_srv),                        \
+			 &_bt_mesh_dtt_srv_cb) \
 	}
 
 /** @def BT_MESH_MODEL_DTT_SRV
@@ -44,11 +49,7 @@ struct bt_mesh_dtt_srv;
  * @param[in] _srv Pointer to a @ref bt_mesh_dtt_srv instance.
  */
 #define BT_MESH_MODEL_DTT_SRV(_srv)                                            \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_DEF_TRANS_TIME_SRV,              \
-			 _bt_mesh_dtt_srv_op, &(_srv)->pub,                    \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_dtt_srv,       \
-						 _srv),                        \
-			 &_bt_mesh_dtt_srv_cb)
+	&(_srv)->model
 
 /** Generic Default Transition Time server instance. */
 struct bt_mesh_dtt_srv {
@@ -72,7 +73,7 @@ struct bt_mesh_dtt_srv {
 			     uint32_t old_transition_time,
 			     uint32_t new_transition_time);
 	/** Composition data Model entry pointer. */
-	const struct bt_mesh_model *model;
+	const struct bt_mesh_model model;
 	/** Model publish parameters. */
 	struct bt_mesh_model_pub pub;
 	/* Publication buffer */

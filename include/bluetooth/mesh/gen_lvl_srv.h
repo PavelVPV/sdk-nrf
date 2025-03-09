@@ -30,9 +30,14 @@ struct bt_mesh_lvl_srv;
  *
  * @param[in] _handlers Pointer to a handler function structure.
  */
-#define BT_MESH_LVL_SRV_INIT(_handlers)                                        \
+#define BT_MESH_LVL_SRV_INIT(_srv, _handlers)                                        \
 	{                                                                      \
 		.handlers = _handlers,                                         \
+		.model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_LEVEL_SRV, _bt_mesh_lvl_srv_op,  \
+			 &(_srv).pub,                                         \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lvl_srv,       \
+						 &_srv),                        \
+			 &_bt_mesh_lvl_srv_cb) \
 	}
 
 /** @def BT_MESH_MODEL_LVL_SRV
@@ -42,11 +47,7 @@ struct bt_mesh_lvl_srv;
  * @param[in] _srv Pointer to a @ref bt_mesh_lvl_srv instance.
  */
 #define BT_MESH_MODEL_LVL_SRV(_srv)                                            \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_LEVEL_SRV, _bt_mesh_lvl_srv_op,  \
-			 &(_srv)->pub,                                         \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_lvl_srv,       \
-						 _srv),                        \
-			 &_bt_mesh_lvl_srv_cb)
+	&(_srv)->model
 
 /** Handler functions for the Generic Level Server. */
 struct bt_mesh_lvl_srv_handlers {
@@ -144,7 +145,7 @@ struct bt_mesh_lvl_srv {
 	/** Application handler functions. */
 	const struct bt_mesh_lvl_srv_handlers *const handlers;
 	/** Pointer to the mesh model entry. */
-	const struct bt_mesh_model *model;
+	const struct bt_mesh_model model;
 	/** Model publication parameters. */
 	struct bt_mesh_model_pub pub;
 	/* Publication buffer */

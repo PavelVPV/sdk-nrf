@@ -65,12 +65,12 @@ static int set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
 	set.lvl = net_buf_simple_pull_le16(buf);
 	set.new_transaction = !tid_check_and_update(
 		&srv->tid, net_buf_simple_pull_u8(buf), ctx);
-	set.transition = model_transition_get(srv->model, &transition, buf);
+	set.transition = model_transition_get(&srv->model, &transition, buf);
 
 	srv->handlers->set(srv, ctx, &set, &status);
 
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	if (ack) {
@@ -100,12 +100,12 @@ static int delta_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *
 	delta_set.delta = net_buf_simple_pull_le32(buf);
 	delta_set.new_transaction = !tid_check_and_update(
 		&srv->tid, net_buf_simple_pull_u8(buf), ctx);
-	delta_set.transition = model_transition_get(srv->model, &transition, buf);
+	delta_set.transition = model_transition_get(&srv->model, &transition, buf);
 
 	srv->handlers->delta_set(srv, ctx, &delta_set, &status);
 
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	if (ack) {
@@ -133,7 +133,7 @@ static int move_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *c
 	move_set.delta = net_buf_simple_pull_le16(buf);
 	move_set.new_transaction = !tid_check_and_update(
 		&srv->tid, net_buf_simple_pull_u8(buf), ctx);
-	move_set.transition = model_transition_get(srv->model, &transition, buf);
+	move_set.transition = model_transition_get(&srv->model, &transition, buf);
 
 	/* If transition.time is 0, we shouldn't move. Align these two
 	 * parameters to simplify application logic for this case:
@@ -147,7 +147,7 @@ static int move_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *c
 	srv->handlers->move_set(srv, ctx, &move_set, &status);
 
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	if (ack) {
@@ -296,7 +296,6 @@ static int bt_mesh_lvl_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_lvl_srv *srv = model->rt->user_data;
 
-	srv->model = model;
 	srv->pub.msg = &srv->pub_buf;
 	srv->pub.update = update_handler;
 	net_buf_simple_init_with_data(&srv->pub_buf, srv->pub_data,
@@ -327,5 +326,5 @@ int bt_mesh_lvl_srv_pub(struct bt_mesh_lvl_srv *srv,
 				 BT_MESH_LVL_MSG_MAXLEN_STATUS);
 	encode_status(status, &msg);
 
-	return bt_mesh_msg_send(srv->model, ctx, &msg);
+	return bt_mesh_msg_send(&srv->model, ctx, &msg);
 }

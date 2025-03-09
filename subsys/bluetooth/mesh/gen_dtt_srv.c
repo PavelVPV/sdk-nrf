@@ -22,7 +22,7 @@ static void rsp_status(struct bt_mesh_dtt_srv *srv,
 				 BT_MESH_DTT_MSG_LEN_STATUS);
 	encode_status(&msg, srv->transition_time);
 
-	(void)bt_mesh_model_send(srv->model, rx_ctx, &msg, NULL, NULL);
+	(void)bt_mesh_model_send(&srv->model, rx_ctx, &msg, NULL, NULL);
 }
 
 static int handle_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
@@ -103,7 +103,7 @@ static int update_handler(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_dtt_srv *srv = model->rt->user_data;
 
-	encode_status(srv->model->pub->msg, srv->transition_time);
+	encode_status(srv->model.pub->msg, srv->transition_time);
 	return 0;
 }
 
@@ -111,7 +111,6 @@ static int bt_mesh_dtt_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_dtt_srv *srv = model->rt->user_data;
 
-	srv->model = model;
 	srv->pub.msg = &srv->pub_buf;
 	srv->pub.update = update_handler;
 	net_buf_simple_init_with_data(&srv->pub_buf, srv->pub_data,
@@ -187,7 +186,7 @@ int bt_mesh_dtt_srv_pub(struct bt_mesh_dtt_srv *srv,
 				 BT_MESH_DTT_MSG_LEN_STATUS);
 	encode_status(&msg, srv->transition_time);
 
-	return bt_mesh_msg_send(srv->model, ctx, &msg);
+	return bt_mesh_msg_send(&srv->model, ctx, &msg);
 }
 
 struct bt_mesh_dtt_srv *bt_mesh_dtt_srv_get(const struct bt_mesh_elem *elem)

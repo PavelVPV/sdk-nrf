@@ -181,11 +181,11 @@ BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 static struct bt_mesh_elem elements[] = {
 #if DT_NODE_EXISTS(DT_ALIAS(led0))
 	BT_MESH_ELEM(
-		1, ((const struct bt_mesh_model *[]) {
-			& (const struct bt_mesh_model) BT_MESH_MODEL_CFG_SRV,
-			& (const struct bt_mesh_model) BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
-			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv)}),
-		(const struct bt_mesh_model *[]) { }),
+		1, BT_MESH_MODEL_PTR_LIST(
+			BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_CFG_SRV),
+			BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
+			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv)),
+		BT_MESH_MODEL_PTR_LIST()),
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(led1))
 	BT_MESH_ELEM(

@@ -52,7 +52,7 @@ static void bt_mesh_lightness_srv_pending_store(const struct bt_mesh_model *mode
 	       data.default_light, data.range.min, data.range.max);
 #endif
 
-	(void)bt_mesh_model_data_store(srv->lightness_model, false, NULL,
+	(void)bt_mesh_model_data_store(&srv->lightness_model, false, NULL,
 				       &data, sizeof(data));
 }
 #endif
@@ -60,7 +60,7 @@ static void bt_mesh_lightness_srv_pending_store(const struct bt_mesh_model *mode
 static void store_state(struct bt_mesh_lightness_srv *srv)
 {
 #if CONFIG_BT_SETTINGS
-	bt_mesh_model_data_store_schedule(srv->lightness_model);
+	bt_mesh_model_data_store_schedule(&srv->lightness_model);
 #endif
 }
 
@@ -116,7 +116,7 @@ static int pub(struct bt_mesh_lightness_srv *srv, struct bt_mesh_msg_ctx *ctx,
 				 BT_MESH_LIGHTNESS_MSG_MAXLEN_STATUS);
 	lvl_status_encode(&msg, status, repr);
 
-	return bt_mesh_msg_send(srv->lightness_model, ctx, &msg);
+	return bt_mesh_msg_send(&srv->lightness_model, ctx, &msg);
 }
 
 static void rsp_lightness_status(const struct bt_mesh_model *model,
@@ -255,7 +255,7 @@ static int lightness_set(const struct bt_mesh_model *model, struct bt_mesh_msg_c
 		lightness_srv_change_lvl(srv, ctx, &set, &status, true);
 
 		if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-			bt_mesh_scene_invalidate(srv->lightness_model);
+			bt_mesh_scene_invalidate(&srv->lightness_model);
 		}
 	} else if (ack) {
 		srv->handlers->light_get(srv, NULL, &status);
@@ -771,7 +771,7 @@ static void bt_mesh_lightness_srv_reset(const struct bt_mesh_model *model)
 	lightness_srv_reset(srv);
 	net_buf_simple_reset(srv->pub.msg);
 	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
-		(void)bt_mesh_model_data_store(srv->lightness_model, false,
+		(void)bt_mesh_model_data_store(&srv->lightness_model, false,
 					       NULL, NULL, 0);
 	}
 }
@@ -841,8 +841,6 @@ static int bt_mesh_lightness_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_lightness_srv *srv = model->rt->user_data;
 
-	srv->lightness_model = model;
-
 	lightness_srv_reset(srv);
 	srv->pub.msg = &srv->pub_buf;
 	srv->pub.update = update_handler;
@@ -870,11 +868,11 @@ static const struct bt_mesh_model * lightness_srv_extends(const struct bt_mesh_m
 	struct bt_mesh_lightness_srv *srv = model->rt->user_data;
 
 	if (ext_model == NULL) {
-		return srv->ponoff.ponoff_model;
+		return &srv->ponoff.ponoff_model;
 	}
 
-	if (ext_model == srv->ponoff.ponoff_model) {
-		return srv->lvl.model;
+	if (ext_model == &srv->ponoff.ponoff_model) {
+		return &srv->lvl.model;
 	}
 
 	return NULL;
@@ -983,9 +981,7 @@ static int bt_mesh_lightness_setup_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_lightness_srv *srv = model->rt->user_data;
 
-	srv->lightness_setup_model = model;
-
-	bt_mesh_model_correspond(model, srv->lightness_model);
+	bt_mesh_model_correspond(model, &srv->lightness_model);
 
 	return 0;
 }
@@ -996,11 +992,11 @@ static const struct bt_mesh_model * lightness_setup_srv_extends(const struct bt_
 	struct bt_mesh_lightness_srv *srv = model->rt->user_data;
 
 	if (ext_model == NULL) {
-		return srv->lightness_model;
+		return &srv->lightness_model;
 	}
 
-	if (ext_model == srv->lightness_model) {
-		return srv->ponoff.ponoff_setup_model;
+	if (ext_model == &srv->lightness_model) {
+		return &srv->ponoff.ponoff_setup_model;
 	}
 
 	return NULL;

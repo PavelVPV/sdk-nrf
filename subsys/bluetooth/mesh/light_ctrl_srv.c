@@ -61,7 +61,7 @@ static void store(struct bt_mesh_light_ctrl_srv *srv, enum flags kind)
 #if CONFIG_BT_SETTINGS
 	atomic_set_bit(&srv->flags, kind);
 
-	bt_mesh_model_data_store_schedule(srv->model);
+	bt_mesh_model_data_store_schedule(&srv->model);
 #endif
 }
 
@@ -230,7 +230,7 @@ static int light_onoff_status_send(struct bt_mesh_light_ctrl_srv *srv,
 				 3);
 	light_onoff_encode(srv, &buf, prev_state);
 
-	return bt_mesh_msg_send(srv->model, ctx, &buf);
+	return bt_mesh_msg_send(&srv->model, ctx, &buf);
 }
 
 static void onoff_encode(struct bt_mesh_light_ctrl_srv *srv,
@@ -566,7 +566,7 @@ static void timeout(struct k_work *work)
 				/* Resuming the LC server invalidates the current scene as it takes
 				 * control over states that are stored with the scene.
 				 */
-				bt_mesh_scene_invalidate(srv->model);
+				bt_mesh_scene_invalidate(&srv->model);
 			}
 			ctrl_enable(srv);
 			store(srv, FLAG_STORE_STATE);
@@ -619,7 +619,7 @@ static void timeout(struct k_work *work)
 	}
 
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	if (srv->state == LIGHT_CTRL_STATE_ON) {
@@ -678,7 +678,7 @@ static void store_cfg_data(struct bt_mesh_light_ctrl_srv *srv)
 #endif
 		};
 
-		(void)bt_mesh_model_data_store(srv->setup_srv, false, NULL,
+		(void)bt_mesh_model_data_store(&srv->setup_srv, false, NULL,
 					       &data, sizeof(data));
 	}
 }
@@ -694,7 +694,7 @@ static void store_state_data(struct bt_mesh_light_ctrl_srv *srv)
 		atomic_set_bit_to(&data, STORED_FLAG_OCC_MODE,
 				  atomic_test_bit(&srv->flags, FLAG_OCC_MODE));
 
-		(void)bt_mesh_model_data_store(srv->model, false, NULL, &data,
+		(void)bt_mesh_model_data_store(&srv->model, false, NULL, &data,
 					       sizeof(data));
 	}
 
@@ -721,7 +721,7 @@ static void mode_rsp(struct bt_mesh_light_ctrl_srv *srv,
 	bt_mesh_model_msg_init(&rsp, BT_MESH_LIGHT_CTRL_OP_MODE_STATUS);
 	net_buf_simple_add_u8(&rsp, is_enabled(srv));
 
-	bt_mesh_msg_send(srv->model, ctx, &rsp);
+	bt_mesh_msg_send(&srv->model, ctx, &rsp);
 }
 
 static int handle_mode_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
@@ -786,7 +786,7 @@ static void om_rsp(struct bt_mesh_light_ctrl_srv *srv,
 	net_buf_simple_add_u8(&rsp,
 			      atomic_test_bit(&srv->flags, FLAG_OCC_MODE));
 
-	bt_mesh_msg_send(srv->model, ctx, &rsp);
+	bt_mesh_msg_send(&srv->model, ctx, &rsp);
 }
 
 static int handle_om_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
@@ -814,7 +814,7 @@ static int om_set(struct bt_mesh_light_ctrl_srv *srv,
 	store(srv, FLAG_STORE_STATE);
 
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	return 0;
@@ -883,7 +883,7 @@ static int light_onoff_set(struct bt_mesh_light_ctrl_srv *srv, struct bt_mesh_ms
 	uint8_t tid = net_buf_simple_pull_u8(buf);
 
 	struct bt_mesh_model_transition transition;
-	bool has_trans = transition_get(srv->model, &transition, buf);
+	bool has_trans = transition_get(&srv->model, &transition, buf);
 
 	enum bt_mesh_light_ctrl_srv_state prev_state = srv->state;
 
@@ -901,7 +901,7 @@ static int light_onoff_set(struct bt_mesh_light_ctrl_srv *srv, struct bt_mesh_ms
 		}
 
 		if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-			bt_mesh_scene_invalidate(srv->model);
+			bt_mesh_scene_invalidate(&srv->model);
 		}
 	}
 
@@ -1352,7 +1352,7 @@ static int prop_tx(struct bt_mesh_light_ctrl_srv *srv,
 		return -ENOENT;
 	}
 
-	bt_mesh_msg_send(srv->setup_srv, ctx, &buf);
+	bt_mesh_msg_send(&srv->setup_srv, ctx, &buf);
 
 	return 0;
 }
@@ -1382,7 +1382,7 @@ static int handle_prop_set(const struct bt_mesh_model *model, struct bt_mesh_msg
 	(void)prop_tx(srv, NULL, id);
 
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	store(srv, FLAG_STORE_CFG);
@@ -1406,7 +1406,7 @@ static int handle_prop_set_unack(const struct bt_mesh_model *model, struct bt_me
 	(void)prop_tx(srv, NULL, id);
 
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	store(srv, FLAG_STORE_CFG);
@@ -1578,10 +1578,7 @@ static int light_ctrl_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_light_ctrl_srv *srv = model->rt->user_data;
 
-	srv->model = model;
-
-	if (srv->lightness->lightness_model == NULL ||
-	    srv->lightness->lightness_model->rt->elem_idx >= model->rt->elem_idx) {
+	if (srv->lightness->lightness_model.rt->elem_idx >= model->rt->elem_idx) {
 		LOG_ERR("Lightness: Invalid element index");
 		return -EINVAL;
 	}
@@ -1626,11 +1623,11 @@ static const struct bt_mesh_model * light_ctrl_srv_extends(const struct bt_mesh_
 	struct bt_mesh_light_ctrl_srv *srv = model->rt->user_data;
 
 	if (ext_model == NULL) {
-		return srv->lightness->lightness_model;
+		return &srv->lightness->lightness_model;
 	}
 
-	if (ext_model == srv->lightness->lightness_model) {
-		return srv->onoff.model;
+	if (ext_model == &srv->lightness->lightness_model) {
+		return &srv->onoff.model;
 	}
 
 	return NULL;
@@ -1739,9 +1736,9 @@ static void light_ctrl_srv_reset(const struct bt_mesh_model *model)
 	srv->resume = CONFIG_BT_MESH_LIGHT_CTRL_SRV_RESUME_DELAY;
 
 	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
-		(void)bt_mesh_model_data_store(srv->setup_srv, false, NULL,
+		(void)bt_mesh_model_data_store(&srv->setup_srv, false, NULL,
 					       NULL, 0);
-		(void)bt_mesh_model_data_store(srv->model, false, NULL,
+		(void)bt_mesh_model_data_store(&srv->model, false, NULL,
 					       NULL, 0);
 	}
 }
@@ -1761,13 +1758,11 @@ static int lc_setup_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_light_ctrl_srv *srv = model->rt->user_data;
 
-	srv->setup_srv = model;
-
 	srv->setup_pub.msg = &srv->setup_pub_buf;
 	net_buf_simple_init_with_data(&srv->setup_pub_buf, srv->setup_pub_data,
 				      sizeof(srv->setup_pub_data));
 
-	bt_mesh_model_correspond(model, srv->model);
+	bt_mesh_model_correspond(model, &srv->model);
 
 	return 0;
 }
@@ -1778,7 +1773,7 @@ static const struct bt_mesh_model * lc_setup_srv_extends(const struct bt_mesh_mo
 	struct bt_mesh_light_ctrl_srv *srv = model->rt->user_data;
 
 	if (ext_model == NULL) {
-		return srv->model;
+		return &srv->model;
 	}
 
 	return NULL;
@@ -1832,7 +1827,7 @@ int bt_mesh_light_ctrl_srv_on(struct bt_mesh_light_ctrl_srv *srv)
 
 	err = turn_on(srv, NULL, true);
 	if (!err && IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	return err;
@@ -1844,7 +1839,7 @@ int bt_mesh_light_ctrl_srv_off(struct bt_mesh_light_ctrl_srv *srv)
 
 	err = turn_off(srv, NULL, true);
 	if (!err && IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	return err;
@@ -1861,7 +1856,7 @@ int bt_mesh_light_ctrl_srv_enable(struct bt_mesh_light_ctrl_srv *srv)
 		ctrl_enable(srv);
 		store(srv, FLAG_STORE_STATE);
 		if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-			bt_mesh_scene_invalidate(srv->model);
+			bt_mesh_scene_invalidate(&srv->model);
 		}
 	}
 
@@ -1886,7 +1881,7 @@ int bt_mesh_light_ctrl_srv_disable(struct bt_mesh_light_ctrl_srv *srv)
 	schedule_resume_timer(srv);
 	store(srv, FLAG_STORE_STATE);
 	if (IS_ENABLED(CONFIG_BT_MESH_SCENE_SRV)) {
-		bt_mesh_scene_invalidate(srv->model);
+		bt_mesh_scene_invalidate(&srv->model);
 	}
 
 	return 0;

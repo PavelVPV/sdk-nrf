@@ -188,7 +188,7 @@ static const struct bt_mesh_lightness_srv_handlers lightness_srv_handlers = {
 };
 
 static struct lightness_ctx my_ctx = {
-	.lightness_srv = BT_MESH_LIGHTNESS_SRV_INIT(&lightness_srv_handlers),
+	.lightness_srv = BT_MESH_LIGHTNESS_SRV_INIT(my_ctx.lightness_srv, &lightness_srv_handlers),
 
 };
 
@@ -236,22 +236,22 @@ static struct bt_mesh_sensor_srv sensor_srv =
 static struct bt_mesh_scene_srv scene_srv;
 
 static struct bt_mesh_light_ctrl_srv light_ctrl_srv =
-	BT_MESH_LIGHT_CTRL_SRV_INIT(&my_ctx.lightness_srv);
+	BT_MESH_LIGHT_CTRL_SRV_INIT(light_ctrl_srv, &my_ctx.lightness_srv);
 
 static struct bt_mesh_elem elements[] = {
 	BT_MESH_ELEM(1,
-		     BT_MESH_MODEL_LIST(
-			     BT_MESH_MODEL_CFG_SRV,
-			     BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
+		     BT_MESH_MODEL_PTR_LIST(
+			     BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_CFG_SRV),
+			     BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
 			     BT_MESH_MODEL_LIGHTNESS_SRV(
 					 &my_ctx.lightness_srv),
 			     BT_MESH_MODEL_SCENE_SRV(&scene_srv),
 			     BT_MESH_MODEL_SENSOR_SRV(&sensor_srv)),
-		     BT_MESH_MODEL_NONE),
+		     BT_MESH_MODEL_PTR_LIST()),
 	BT_MESH_ELEM(2,
-		     BT_MESH_MODEL_LIST(
+		     BT_MESH_MODEL_PTR_LIST(
 			     BT_MESH_MODEL_LIGHT_CTRL_SRV(&light_ctrl_srv)),
-		     BT_MESH_MODEL_NONE),
+		     BT_MESH_MODEL_PTR_LIST()),
 };
 
 static const struct bt_mesh_comp comp = {
