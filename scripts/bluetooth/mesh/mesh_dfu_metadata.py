@@ -188,6 +188,7 @@ def read_symbol_data(elf, symbol_addr):
     if section is None:
         raise Exception('Unable to find .symtab section')
     symbol = None
+    closest_symbol = None
     for s in section.iter_symbols():
         if (s.entry.st_value == symbol_addr) and\
             (len(s.name) > 0) and\
@@ -195,9 +196,17 @@ def read_symbol_data(elf, symbol_addr):
             s.entry.st_size > 0:
             symbol = s
             break
+        elif (closest_symbol is None) or \
+                (s.entry.st_value < symbol_addr) and\
+            (s.entry.st_value > closet_symbol.entry.st_value):
+            closet_symbol = s
     else:
-        raise Exception('Unable to find symbol at address {symbol_addr}')
+        if (closest_symbol is None):
+            raise Exception(f'Unable to find symbol at address {symbol_addr:02x}')
+        print(f"Unable to find symbol at address {symbol_addr:02x}. Using closest symbol: {closest_symbol.name}")
+    print(f"symbol: %s" % hex(symbol['st_value']))
     file_offset = None
+#    address = closest_symbol.entry.st_value - symbol_addr if closest_symbol
     for segment in elf.iter_segments():
         if segment.header['p_type'] != 'PT_LOAD':
             continue
@@ -209,6 +218,7 @@ def read_symbol_data(elf, symbol_addr):
         raise Exception('Error getting file offset from ELF data')
     elf.stream.seek(file_offset)
     sz = symbol['st_size']
+    print(f"sz: %d" % sz)
 
     return elf.stream.read(sz)
 
@@ -316,10 +326,26 @@ def read_comp_data(elf_path, addr, kconfigs):
         # The format of an element is defined by `struct bt_mesh_elem` type.
         # The format of a model is defined by `struct bt_mesh_model` type.
         # All types are declared in `zephyr/include/zephyr/bluetooth/mesh/access.h`.
+
+        # H - uint16_t, I - uint32_t, B - uint8_t
+        # H - cid, H - pid, H - vid, H - crpl, H - feat
+        # I - elem_count
+        # I - elem_ptr
+
         for comp_data_entry in struct.iter_unpack('HHHHII', cdp0_value):
             cid, pid, vid, _, elems_count, elems_ptr = comp_data_entry
 
             comp = Comp0(cid, pid, vid, kconfigs)
+
+            # Legend:
+            # H - uint16_t, I - uint32_t, B - uint8_t
+
+            # I - rt
+            # H - loc
+            # B - sig_count
+            # B - vnd_count
+            # I - models (SIG models)
+            # I - vnd_models
 
             elems_value = read_symbol_data(elf, elems_ptr)
             elems_iter = struct.iter_unpack('IHBBII', elems_value)
@@ -333,12 +359,61 @@ def read_comp_data(elf_path, addr, kconfigs):
                 elem_item = comp.elem_add(loc)
 
                 def models_unpack(ptr, elem_item, vnd):
-                    models_value = read_symbol_data(elf, ptr)
-                    model_format = 'HHIIIHHIHH' + ('I' if label_cnt > 0  else '') + 'II' + ('I' if lcd_srv else '')
-                    models_iter = struct.iter_unpack(model_format, models_value)
+                    print(f"models_unpack: {ptr:02x}")
+                    models_array = read_symbol_data(elf, ptr)
+                    print(f'Models value: {models_array}')
 
-                    for model in models_iter:
-                        id1, id2, __rt, __pub, __keys, __keys_cnt, _, __groups, __groups_cnt, _, __uuids, __op, __cb = model
+                    models_iter = struct.iter_unpack('I', models_array)
+
+                    print(f'Models: {models_iter}')
+                    print(f'Models count: {len(models_array) // 4}')
+                    for model_ptr, in models_iter:
+                        print(f"Model ptr: {model_ptr:02x}")
+                        model_value = read_symbol_data(elf, model_ptr)
+                        print(f'Models value: {model_value}, len: {len(model_value)}')
+
+                        # Legend:
+                        # H - uint16_t, I - uint32_t, B - uint8_t
+
+                        # H - vnd.company_id (or SIG model id),
+                        # H - vnd.id,
+                        # I - rt
+
+                        ################################
+                        # I - extends
+                        # H - extends_cnt
+                        # H - GAP (alignment)
+                        # I - corresponds
+                        # H - corresponds_cnt
+                        # H - GAP (alignment)
+                        ################################
+
+                        # I - pub
+                        # I - keys
+                        # H - keys_cnt
+                        # H - GAP (alignment)
+                        # I - groups
+                        # H - groups_cnt
+                        # H - GAP (alignment)
+                        # I - uuids
+                        # I - op
+                        # I - cb
+                        # I - metadata
+
+                        print(f'label_cnt: {label_cnt}')
+                        print(f'lcd_srv: {lcd_srv}')
+                        model_format = 'HHIIHHIHHIIHHIHH' + ('I' if label_cnt > 0  else '') + 'II' + ('I' if lcd_srv else '')
+                        print(f"Model format: {model_format}")
+                        model_value_unpacked = struct.iter_unpack(model_format, model_value)
+
+#                        print(f'Models value: {len(list(model_value_unpacked))}')
+
+                        model_value_unpacked = list(model_value_unpacked)[0]
+
+                        id1, id2, __rt, extends, extends_cnt, _, corresponds, corresponds_cnt, _, __pub, __keys, __keys_cnt, _, __groups, __groups_cnt, _, __uuids, __op, __cb = model_value_unpacked
+                        print(f"Model: {id1:04x}, {id2:04x}")
+                        print(f"Extends: {extends:08x}, {extends_cnt:04x}")
+                        print(f"Corresponds: {corresponds:08x}, {corresponds_cnt:04x}")
                         if not vnd:
                             elem_item.sig_model_add(id1)
                         else:
@@ -420,10 +495,10 @@ if __name__ == "__main__":
             existing_metadata_print(metadata_path)
             sys.exit(0)
 
-        zip = ZipFile(zip_path, "a")
-        if FILE_NAME_IN_ZIP in zip.namelist():
+#        zip = ZipFile(zip_path, "a")
+#        if FILE_NAME_IN_ZIP in zip.namelist():
             # Mesh metadata already present in zip file
-            sys.exit(0)
+#            sys.exit(0)
 
         comps = parse_comp_data(elf_path, kconfigs)
         version = kconfigs.version_parse()
