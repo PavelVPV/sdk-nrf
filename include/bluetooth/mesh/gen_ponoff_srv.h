@@ -44,16 +44,20 @@ struct bt_mesh_ponoff_srv;
 		.dtt = BT_MESH_DTT_SRV_INIT((_srv).dtt, _dtt_change_handler),              \
 		.onoff_handlers = _onoff_handlers,                             \
 		.update = _on_power_up_change_handler,                         \
-		.ponoff_model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SRV,         \
+		.ponoff_model = BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SRV,         \
 				 _bt_mesh_ponoff_srv_op, &(_srv).pub,         \
 				 BT_MESH_MODEL_USER_DATA(                      \
 					 struct bt_mesh_ponoff_srv, &_srv),     \
-				 &_bt_mesh_ponoff_srv_cb),                     \
-		.ponoff_setup_model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SETUP_SRV,   \
+				 &_bt_mesh_ponoff_srv_cb, \
+				 BT_MESH_MODEL_EXTENDS(&(_srv).onoff.model), \
+				 BT_MESH_MODEL_CORRESPONDS()),                     \
+		.ponoff_setup_model = BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_GEN_POWER_ONOFF_SETUP_SRV,   \
 				 _bt_mesh_ponoff_setup_srv_op, NULL,           \
 				 BT_MESH_MODEL_USER_DATA(                      \
 					 struct bt_mesh_ponoff_srv, &_srv),     \
-				 &_bt_mesh_ponoff_setup_srv_cb) \
+				 &_bt_mesh_ponoff_setup_srv_cb, \
+				 BT_MESH_MODEL_EXTENDS(&(_srv).ponoff_model, &(_srv).dtt.model), \
+				 BT_MESH_MODEL_CORRESPONDS(&(_srv).ponoff_model)) \
 	}
 
 /** @def BT_MESH_MODEL_PONOFF_SRV

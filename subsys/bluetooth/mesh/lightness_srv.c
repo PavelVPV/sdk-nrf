@@ -862,22 +862,6 @@ static int bt_mesh_lightness_srv_init(const struct bt_mesh_model *model)
 	return 0;
 }
 
-static const struct bt_mesh_model * lightness_srv_extends(const struct bt_mesh_model *model,
-				  const struct bt_mesh_model *ext_model)
-{
-	struct bt_mesh_lightness_srv *srv = model->rt->user_data;
-
-	if (ext_model == NULL) {
-		return &srv->ponoff.ponoff_model;
-	}
-
-	if (ext_model == &srv->ponoff.ponoff_model) {
-		return &srv->lvl.model;
-	}
-
-	return NULL;
-}
-
 #ifdef CONFIG_BT_SETTINGS
 static int bt_mesh_lightness_srv_settings_set(const struct bt_mesh_model *model,
 					      const char *name, size_t len_rd,
@@ -974,37 +958,17 @@ const struct bt_mesh_model_cb _bt_mesh_lightness_srv_cb = {
 	.start = bt_mesh_lightness_srv_start,
 	.pending_store = bt_mesh_lightness_srv_pending_store,
 #endif
-	.extends = lightness_srv_extends,
 };
 
 static int bt_mesh_lightness_setup_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_lightness_srv *srv = model->rt->user_data;
 
-	bt_mesh_model_correspond(model, &srv->lightness_model);
-
 	return 0;
-}
-
-static const struct bt_mesh_model * lightness_setup_srv_extends(const struct bt_mesh_model *model,
-					const struct bt_mesh_model *ext_model)
-{
-	struct bt_mesh_lightness_srv *srv = model->rt->user_data;
-
-	if (ext_model == NULL) {
-		return &srv->lightness_model;
-	}
-
-	if (ext_model == &srv->lightness_model) {
-		return &srv->ponoff.ponoff_setup_model;
-	}
-
-	return NULL;
 }
 
 const struct bt_mesh_model_cb _bt_mesh_lightness_setup_srv_cb = {
 	.init = bt_mesh_lightness_setup_srv_init,
-	.extends = lightness_setup_srv_extends,
 };
 
 int bt_mesh_lightness_srv_pub(struct bt_mesh_lightness_srv *srv,
