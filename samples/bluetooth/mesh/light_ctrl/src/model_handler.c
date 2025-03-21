@@ -231,9 +231,9 @@ static struct bt_mesh_sensor *const sensors[] = {
 };
 
 static struct bt_mesh_sensor_srv sensor_srv =
-	BT_MESH_SENSOR_SRV_INIT(sensors, ARRAY_SIZE(sensors));
+	BT_MESH_SENSOR_SRV_INIT(sensor_srv, sensors, ARRAY_SIZE(sensors));
 
-static struct bt_mesh_scene_srv scene_srv;
+static struct bt_mesh_scene_srv scene_srv = BT_MESH_SCENE_SRV_INIT(scene_srv);
 
 static struct bt_mesh_light_ctrl_srv light_ctrl_srv =
 	BT_MESH_LIGHT_CTRL_SRV_INIT(light_ctrl_srv, &my_ctx.lightness_srv);

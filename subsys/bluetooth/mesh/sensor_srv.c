@@ -63,7 +63,7 @@ static void sensor_srv_pending_store(const struct bt_mesh_model *model)
 		}
 	}
 
-	(void)bt_mesh_model_data_store(srv->model, false, NULL, buf.data,
+	(void)bt_mesh_model_data_store(&srv->model, false, NULL, buf.data,
 				       buf.len);
 
 }
@@ -72,7 +72,7 @@ static void sensor_srv_pending_store(const struct bt_mesh_model *model)
 static void cadence_store(struct bt_mesh_sensor_srv *srv)
 {
 #if CONFIG_BT_SETTINGS
-	bt_mesh_model_data_store_schedule(srv->model);
+	bt_mesh_model_data_store_schedule(&srv->model);
 #endif
 }
 
@@ -506,7 +506,7 @@ static int handle_cadence_get(const struct bt_mesh_model *model, struct bt_mesh_
 	}
 
 respond:
-	bt_mesh_model_send(srv->model, ctx, &rsp, NULL, NULL);
+	bt_mesh_model_send(&srv->model, ctx, &rsp, NULL, NULL);
 
 	return 0;
 }
@@ -572,11 +572,11 @@ static int cadence_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx
 		int period_ms;
 
 		srv->pub.period_div = period_div;
-		period_ms = bt_mesh_model_pub_period_get(srv->model);
+		period_ms = bt_mesh_model_pub_period_get(&srv->model);
 
 		if (period_ms > 0) {
 			LOG_DBG("New publication interval: %u", period_ms);
-			k_work_reschedule(&srv->model->pub->timer, K_MSEC(period_ms));
+			k_work_reschedule(&srv->model.pub->timer, K_MSEC(period_ms));
 		}
 	}
 
@@ -968,7 +968,7 @@ static int update_handler(const struct bt_mesh_model *model)
 
 	if (period_div != srv->pub.period_div) {
 		LOG_DBG("New interval: %u",
-		       bt_mesh_model_pub_period_get(srv->model));
+		       bt_mesh_model_pub_period_get(&srv->model));
 	}
 
 	srv->seq++;
@@ -1011,8 +1011,6 @@ static int sensor_srv_init(const struct bt_mesh_model *model)
 
 	srv->seq = 1;
 
-	srv->model = model;
-
 	srv->pub.update = update_handler;
 	srv->pub.msg = &srv->pub_buf;
 
@@ -1047,7 +1045,7 @@ static void sensor_srv_reset(const struct bt_mesh_model *model)
 	srv->pub.period_div = 0;
 
 	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
-		(void)bt_mesh_model_data_store(srv->model, false, NULL, NULL,
+		(void)bt_mesh_model_data_store(&srv->model, false, NULL, NULL,
 					       0);
 	}
 }
@@ -1124,26 +1122,31 @@ static int sensor_setup_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_sensor_srv *srv = model->rt->user_data;
 
-	bt_mesh_model_correspond(model, srv->model);
-
+#if 0
+	bt_mesh_model_correspond(model, &srv->model);
+#endif
 	return 0;
 }
 
+#if 0
 static const struct bt_mesh_model * sensor_setup_srv_extends(const struct bt_mesh_model *model,
 							    const struct bt_mesh_model *ext_model)
 {
 	struct bt_mesh_sensor_srv *srv = model->rt->user_data;
 
 	if (ext_model == NULL) {
-		return srv->model;
+		return &srv->model;
 	}
 
 	return NULL;
 }
+#endif
 
 const struct bt_mesh_model_cb _bt_mesh_sensor_setup_srv_cb = {
 	.init = sensor_setup_srv_init,
+#if 0
 	.extends = sensor_setup_srv_extends,
+#endif
 };
 
 int bt_mesh_sensor_srv_pub(struct bt_mesh_sensor_srv *srv,
@@ -1164,7 +1167,7 @@ int bt_mesh_sensor_srv_pub(struct bt_mesh_sensor_srv *srv,
 
 	sensor_cadence_update(sensor, value);
 
-	err = bt_mesh_msg_send(srv->model, ctx, &msg);
+	err = bt_mesh_msg_send(&srv->model, ctx, &msg);
 	if (err) {
 		return err;
 	}

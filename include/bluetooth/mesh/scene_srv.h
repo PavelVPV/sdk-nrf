@@ -27,6 +27,22 @@ extern "C" {
 #define CONFIG_BT_MESH_SCENES_MAX 0
 #endif
 
+#define BT_MESH_SCENE_SRV_INIT(_srv) \
+	{ \
+		.model = BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_SCENE_SRV, _bt_mesh_scene_srv_op,    \
+			 &(_srv).pub,                                         \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_scene_srv,     \
+						 &_srv),                        \
+			 &_bt_mesh_scene_srv_cb),                              \
+		.setup_mod = BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_SCENE_SETUP_SRV,                     \
+			 _bt_mesh_scene_setup_srv_op, NULL,                    \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_scene_srv,     \
+						 &_srv),                        \
+			 &_bt_mesh_scene_setup_srv_cb, \
+			 BT_MESH_MODEL_EXTENDS(&(_srv).model), \
+			 BT_MESH_MODEL_CORRESPONDS(&(_srv).model)) \
+	}
+
 /** @def BT_MESH_SCENE_ENTRY_SIG
  *
  *  @brief Scene entry type definition for SIG models
@@ -56,16 +72,8 @@ struct bt_mesh_scene_srv;
  *  @param[in] _srv Pointer to a @ref bt_mesh_scene_srv instance.
  */
 #define BT_MESH_MODEL_SCENE_SRV(_srv)                                          \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_SCENE_SRV, _bt_mesh_scene_srv_op,    \
-			 &(_srv)->pub,                                         \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_scene_srv,     \
-						 _srv),                        \
-			 &_bt_mesh_scene_srv_cb),                              \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_SCENE_SETUP_SRV,                     \
-			 _bt_mesh_scene_setup_srv_op, NULL,                    \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_scene_srv,     \
-						 _srv),                        \
-			 &_bt_mesh_scene_setup_srv_cb)
+	&(_srv)->model, \
+	&(_srv)->setup_mod
 
 /** Scene Server model instance */
 struct bt_mesh_scene_srv {
@@ -97,9 +105,9 @@ struct bt_mesh_scene_srv {
 	/** TID context. */
 	struct bt_mesh_tid_ctx tid;
 	/** Composition data model pointer. */
-	const struct bt_mesh_model *model;
+	const struct bt_mesh_model model;
 	/** Composition data setup model pointer. */
-	const struct bt_mesh_model *setup_mod;
+	const struct bt_mesh_model setup_mod;
 	/** Publication state. */
 	struct bt_mesh_model_pub pub;
 	/** Publication message. */

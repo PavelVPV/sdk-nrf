@@ -32,11 +32,26 @@ struct bt_mesh_sensor_srv;
  *  @param[in] _count Number of sensors in the array. Can at most be
  *                    @kconfig{CONFIG_BT_MESH_SENSOR_SRV_SENSORS_MAX}.
  */
-#define BT_MESH_SENSOR_SRV_INIT(_sensors, _count)                              \
+#define BT_MESH_SENSOR_SRV_INIT(_srv, _sensors, _count, ...)                              \
 	{                                                                      \
 		.sensor_array = _sensors,                                      \
 		.sensor_count =                                                \
 			MIN(CONFIG_BT_MESH_SENSOR_SRV_SENSORS_MAX, _count),    \
+		.model = BT_MESH_MODEL_METADATA_CB(BT_MESH_MODEL_ID_SENSOR_SRV,                 \
+			 _bt_mesh_sensor_srv_op, &(_srv).pub,                 \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_sensor_srv,    \
+						 &_srv),                        \
+			 &_bt_mesh_sensor_srv_cb, \
+			BT_MESH_MODEL_EXTENDS(), \
+			BT_MESH_MODEL_CORRESPONDS(), __VA_ARGS__),                \
+		.setup_model = BT_MESH_MODEL_REL_CB(BT_MESH_MODEL_ID_SENSOR_SETUP_SRV,                    \
+			 _bt_mesh_sensor_setup_srv_op,                         \
+			 &(_srv).setup_pub,                                   \
+			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_sensor_srv,    \
+					      &_srv),                           \
+			 &_bt_mesh_sensor_setup_srv_cb, \
+			 BT_MESH_MODEL_EXTENDS(&(_srv).model), \
+			 BT_MESH_MODEL_CORRESPONDS(&(_srv).model)) \
 	}
 
 /** @def BT_MESH_MODEL_SENSOR_SRV
@@ -48,18 +63,9 @@ struct bt_mesh_sensor_srv;
  *                  compiled with Large Composition Data Server support,
  *                  otherwise this parameter is ignored.
  */
-#define BT_MESH_MODEL_SENSOR_SRV(_srv, ...)                                    \
-	BT_MESH_MODEL_METADATA_CB(BT_MESH_MODEL_ID_SENSOR_SRV,                 \
-			 _bt_mesh_sensor_srv_op, &(_srv)->pub,                 \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_sensor_srv,    \
-						 _srv),                        \
-			 &_bt_mesh_sensor_srv_cb, __VA_ARGS__),                \
-	BT_MESH_MODEL_CB(BT_MESH_MODEL_ID_SENSOR_SETUP_SRV,                    \
-			 _bt_mesh_sensor_setup_srv_op,                         \
-			 &(_srv)->setup_pub,                                   \
-			 BT_MESH_MODEL_USER_DATA(struct bt_mesh_sensor_srv,    \
-					      _srv),                           \
-			 &_bt_mesh_sensor_setup_srv_cb)
+#define BT_MESH_MODEL_SENSOR_SRV(_srv)                                    \
+	&(_srv)->model,                                                           \
+	&(_srv)->setup_model
 
 /** Sensor Properties Metadata ID. */
 #define BT_MESH_SENSOR_PROP_METADATA_ID 0x0001
@@ -107,7 +113,8 @@ struct bt_mesh_sensor_srv {
 			BT_MESH_SENSOR_OP_CADENCE_STATUS,
 			BT_MESH_SENSOR_MSG_MAXLEN_CADENCE_STATUS))];
 	/** Composition data model pointer. */
-	const struct bt_mesh_model *model;
+	const struct bt_mesh_model model;
+	const struct bt_mesh_model setup_model;
 };
 
 /** @brief Publish a sensor value.

@@ -92,7 +92,7 @@ static struct bt_mesh_scene_srv *srv_find(uint16_t elem_idx)
 		 * composition data order. The first scene server that isn't
 		 * after this element will be the right one:
 		 */
-		if (srv->model->rt->elem_idx <= elem_idx) {
+		if (srv->model.rt->elem_idx <= elem_idx) {
 			return srv;
 		}
 	}
@@ -187,7 +187,7 @@ static int scene_recall(const struct bt_mesh_model *model, struct bt_mesh_msg_ct
 	}
 
 	tid = net_buf_simple_pull_u8(buf);
-	has_trans = !!model_transition_get(srv->model, &transition, buf);
+	has_trans = !!model_transition_get(&srv->model, &transition, buf);
 
 	if (tid_check_and_update(&srv->tid, tid, ctx)) {
 		LOG_DBG("Duplicate TID");
@@ -398,7 +398,7 @@ static void page_store(struct bt_mesh_scene_srv *srv, uint16_t scene,
 	scene_path(path, scene, vnd, page);
 	update_page_count(srv, vnd, page);
 
-	err = bt_mesh_model_data_store(srv->model, false, path, buf, len);
+	err = bt_mesh_model_data_store(&srv->model, false, path, buf, len);
 	if (err) {
 		LOG_ERR("Failed storing %s: %d", path, err);
 	}
@@ -429,20 +429,20 @@ static uint16_t srv_elem_end(const struct bt_mesh_scene_srv *srv)
 			break;
 		}
 
-		end = it->model->rt->elem_idx;
+		end = it->model.rt->elem_idx;
 	}
 
 	return end;
 }
 
 static void scene_recall_complete_mod(struct bt_mesh_scene_srv *srv,
-				      const struct bt_mesh_model *models, int model_count, bool vnd)
+				      const struct bt_mesh_model **models, int model_count, bool vnd)
 {
 	for (int j = 0; j < model_count; j++) {
 		const struct bt_mesh_scene_entry *entry;
-		const struct bt_mesh_model *mod = &models[j];
+		const struct bt_mesh_model *mod = models[j];
 
-		if (mod == srv->model) {
+		if (mod == &srv->model) {
 			continue;
 		}
 
@@ -469,7 +469,7 @@ static void scene_recall_complete(struct bt_mesh_scene_srv *srv)
 	const struct bt_mesh_comp *comp = bt_mesh_comp_get();
 	uint16_t elem_end = srv_elem_end(srv);
 
-	for (int i = srv->model->rt->elem_idx; i < elem_end; i++) {
+	for (int i = srv->model.rt->elem_idx; i < elem_end; i++) {
 		const struct bt_mesh_elem *elem = &comp->elem[i];
 
 		scene_recall_complete_mod(srv, elem->models, elem->model_count, false);
@@ -487,17 +487,17 @@ static void scene_store_mod(struct bt_mesh_scene_srv *srv, uint16_t scene,
 	uint8_t page = 0;
 	size_t len = 0;
 
-	for (int i = srv->model->rt->elem_idx; i < elem_end; i++) {
+	for (int i = srv->model.rt->elem_idx; i < elem_end; i++) {
 		const struct bt_mesh_elem *elem = &comp->elem[i];
-		const struct bt_mesh_model *models = vnd ? elem->vnd_models : elem->models;
+		const struct bt_mesh_model **models = vnd ? elem->vnd_models : elem->models;
 		int model_count = vnd ? elem->vnd_model_count : elem->model_count;
 
 		for (int j = 0; j < model_count; j++) {
 			const struct bt_mesh_scene_entry *entry;
-			const struct bt_mesh_model *mod = &models[j];
+			const struct bt_mesh_model *mod = models[j];
 			ssize_t size;
 
-			if (mod == srv->model) {
+			if (mod == &srv->model) {
 				continue;
 			}
 
@@ -563,12 +563,12 @@ static void scene_delete(struct bt_mesh_scene_srv *srv, uint16_t *scene)
 
 	for (int i = 0; i < srv->sigpages; i++) {
 		scene_path(path, *scene, false, i);
-		(void)bt_mesh_model_data_store(srv->model, false, path, NULL, 0);
+		(void)bt_mesh_model_data_store(&srv->model, false, path, NULL, 0);
 	}
 
 	for (int i = 0; i < srv->vndpages; i++) {
 		scene_path(path, *scene, true, i);
-		(void)bt_mesh_model_data_store(srv->model, false, path, NULL, 0);
+		(void)bt_mesh_model_data_store(&srv->model, false, path, NULL, 0);
 	}
 
 	uint16_t target = target_scene(srv);
@@ -718,8 +718,6 @@ static int scene_srv_init(const struct bt_mesh_model *model)
 
 	sys_slist_prepend(&scene_servers, &srv->n);
 
-	srv->model = model;
-
 	k_work_init_delayable(&srv->work, scene_srv_transition_end);
 
 	net_buf_simple_init_with_data(&srv->pub_msg, srv->buf,
@@ -825,8 +823,6 @@ static int scene_setup_srv_init(const struct bt_mesh_model *model)
 		return -EINVAL;
 	}
 
-	srv->setup_mod = model;
-
 	if (IS_ENABLED(CONFIG_BT_MESH_DTT_SRV)) {
 		dtt_srv = bt_mesh_dtt_srv_get(bt_mesh_model_elem(model));
 	}
@@ -836,11 +832,14 @@ static int scene_setup_srv_init(const struct bt_mesh_model *model)
 		return -EINVAL;
 	}
 
-	bt_mesh_model_correspond(model, srv->model);
+#if 0
+	bt_mesh_model_correspond(model, &srv->model);
+#endif
 
 	return 0;
 }
 
+#if 0
 static const struct bt_mesh_model * scene_setup_srv_extends(const struct bt_mesh_model *model,
 							    const struct bt_mesh_model *ext_model)
 {
@@ -859,10 +858,13 @@ static const struct bt_mesh_model * scene_setup_srv_extends(const struct bt_mesh
 
 	return NULL;
 }
+#endif
 
 const struct bt_mesh_model_cb _bt_mesh_scene_setup_srv_cb = {
 	.init = scene_setup_srv_init,
+#if 0
 	.extends = scene_setup_srv_extends,
+#endif
 };
 
 void bt_mesh_scene_invalidate(const struct bt_mesh_model *mod)
@@ -924,7 +926,7 @@ int bt_mesh_scene_srv_set(struct bt_mesh_scene_srv *srv, uint16_t scene,
 	}
 
 	sprintf(path, "bt/mesh/s/%x/data/%x",
-		(srv->model->rt->elem_idx << 8) | srv->model->rt->mod_idx, scene);
+		(srv->model.rt->elem_idx << 8) | srv->model.rt->mod_idx, scene);
 
 	LOG_DBG("Loading %s", path);
 
@@ -942,7 +944,7 @@ int bt_mesh_scene_srv_pub(struct bt_mesh_scene_srv *srv,
 	struct bt_mesh_scene_state state;
 
 	curr_scene_state_get(srv, &state);
-	return scene_status_send(srv->model, ctx, &state);
+	return scene_status_send(&srv->model, ctx, &state);
 }
 
 uint16_t
