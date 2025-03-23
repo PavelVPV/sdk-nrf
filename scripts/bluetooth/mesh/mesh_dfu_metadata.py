@@ -173,6 +173,25 @@ class KConfig(dict):
             raise Exception("Unable to parse CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION Kconfig option") from err
 
 
+def read_data_by_address(elf, address, size):
+    """
+    TBA
+    """
+    file_offset = None
+    for segment in elf.iter_segments():
+        if segment.header['p_type'] != 'PT_LOAD':
+            continue
+        if (address >= segment['p_vaddr']) and\
+            (address < segment['p_vaddr'] + segment['p_filesz']):
+            file_offset = address - segment['p_vaddr'] + segment['p_offset']
+            break
+    else:
+        raise Exception('Error getting file offset from ELF data')
+    elf.stream.seek(file_offset)
+
+    return elf.stream.read(size)
+
+
 def read_symbol_data(elf, symbol_addr):
     """
     Reads variable data from the '.symtab' section of the .elf file.
@@ -194,19 +213,13 @@ def read_symbol_data(elf, symbol_addr):
             (len(s.name) > 0) and\
             ("$" not in s.name) and\
             s.entry.st_size > 0:
-            symbol = s
-            break
-        elif (closest_symbol is None) or \
-                (s.entry.st_value < symbol_addr) and\
-            (s.entry.st_value > closet_symbol.entry.st_value):
-            closet_symbol = s
+                symbol = s
+                break
     else:
-        if (closest_symbol is None):
-            raise Exception(f'Unable to find symbol at address {symbol_addr:02x}')
-        print(f"Unable to find symbol at address {symbol_addr:02x}. Using closest symbol: {closest_symbol.name}")
-    print(f"symbol: %s" % hex(symbol['st_value']))
+        raise Exception(f'Unable to find symbol at address {symbol_addr:02x}')
+
     file_offset = None
-#    address = closest_symbol.entry.st_value - symbol_addr if closest_symbol
+
     for segment in elf.iter_segments():
         if segment.header['p_type'] != 'PT_LOAD':
             continue
@@ -218,7 +231,6 @@ def read_symbol_data(elf, symbol_addr):
         raise Exception('Error getting file offset from ELF data')
     elf.stream.seek(file_offset)
     sz = symbol['st_size']
-    print(f"sz: %d" % sz)
 
     return elf.stream.read(sz)
 
@@ -369,7 +381,13 @@ def read_comp_data(elf_path, addr, kconfigs):
                     print(f'Models count: {len(models_array) // 4}')
                     for model_ptr, in models_iter:
                         print(f"Model ptr: {model_ptr:02x}")
-                        model_value = read_symbol_data(elf, model_ptr)
+
+                        print(f'label_cnt: {label_cnt}')
+                        print(f'lcd_srv: {lcd_srv}')
+                        model_format = 'HHIIHHIHHIIHHIHH' + ('I' if label_cnt > 0  else '') + 'II' + ('I' if lcd_srv else '')
+                        print(f"Model format: {model_format}")
+
+                        model_value = read_data_by_address(elf, model_ptr, struct.calcsize(model_format))
                         print(f'Models value: {model_value}, len: {len(model_value)}')
 
                         # Legend:
@@ -400,10 +418,6 @@ def read_comp_data(elf_path, addr, kconfigs):
                         # I - cb
                         # I - metadata
 
-                        print(f'label_cnt: {label_cnt}')
-                        print(f'lcd_srv: {lcd_srv}')
-                        model_format = 'HHIIHHIHHIIHHIHH' + ('I' if label_cnt > 0  else '') + 'II' + ('I' if lcd_srv else '')
-                        print(f"Model format: {model_format}")
                         model_value_unpacked = struct.iter_unpack(model_format, model_value)
 
 #                        print(f'Models value: {len(list(model_value_unpacked))}')
