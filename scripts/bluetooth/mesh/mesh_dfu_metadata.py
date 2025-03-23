@@ -371,24 +371,15 @@ def read_comp_data(elf_path, addr, kconfigs):
                 elem_item = comp.elem_add(loc)
 
                 def models_unpack(ptr, elem_item, vnd):
-                    print(f"models_unpack: {ptr:02x}")
                     models_array = read_symbol_data(elf, ptr)
-                    print(f'Models value: {models_array}')
 
                     models_iter = struct.iter_unpack('I', models_array)
 
-                    print(f'Models: {models_iter}')
-                    print(f'Models count: {len(models_array) // 4}')
                     for model_ptr, in models_iter:
                         print(f"Model ptr: {model_ptr:02x}")
-
-                        print(f'label_cnt: {label_cnt}')
-                        print(f'lcd_srv: {lcd_srv}')
                         model_format = 'HHIIHHIHHIIHHIHH' + ('I' if label_cnt > 0  else '') + 'II' + ('I' if lcd_srv else '')
-                        print(f"Model format: {model_format}")
 
                         model_value = read_data_by_address(elf, model_ptr, struct.calcsize(model_format))
-                        print(f'Models value: {model_value}, len: {len(model_value)}')
 
                         # Legend:
                         # H - uint16_t, I - uint32_t, B - uint8_t
@@ -428,6 +419,17 @@ def read_comp_data(elf_path, addr, kconfigs):
                         print(f"Model: {id1:04x}, {id2:04x}")
                         print(f"Extends: {extends:08x}, {extends_cnt:04x}")
                         print(f"Corresponds: {corresponds:08x}, {corresponds_cnt:04x}")
+
+                        if (extends != 0) and extends_cnt > 0:
+                            extends_iter = struct.iter_unpack('I', read_data_by_address(elf, extends, extends_cnt * 4))
+                            for ext, in extends_iter:
+                                print(f"Extends: {ext:08x}")
+
+                        if (corresponds != 0) and corresponds_cnt > 0:
+                            corresponds_iter = struct.iter_unpack('I', read_data_by_address(elf, corresponds, corresponds_cnt * 4))
+                            for corr, in corresponds_iter:
+                                print(f"Corresponds: {corr:08x}")
+
                         if not vnd:
                             elem_item.sig_model_add(id1)
                         else:
