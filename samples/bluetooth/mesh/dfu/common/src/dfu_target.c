@@ -235,7 +235,7 @@ static const struct bt_mesh_dfu_srv_cb dfu_handlers = {
 };
 
 struct bt_mesh_dfu_srv dfu_srv =
-	BT_MESH_DFU_SRV_INIT(&dfu_handlers, dfu_imgs, ARRAY_SIZE(dfu_imgs));
+	BT_MESH_DFU_SRV_INIT(dfu_srv, &dfu_handlers, dfu_imgs, ARRAY_SIZE(dfu_imgs));
 
 static void image_version_load(void)
 {

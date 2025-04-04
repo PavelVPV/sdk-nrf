@@ -4,13 +4,18 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
+#include <zephyr/storage/flash_map.h>
+
 #include <zephyr/bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 #include <dk_buttons_and_leds.h>
 #include "model_handler.h"
 #include "lc_pwm_led.h"
+#include "dfu_target.h"
 
 #define PWM_SIZE_STEP 512
+
+static struct bt_mesh_blob_io_flash blob_flash_stream;
 
 struct lightness_ctx {
 	struct bt_mesh_lightness_srv lightness_srv;
@@ -239,7 +244,9 @@ static struct bt_mesh_light_ctrl_srv light_ctrl_srv =
 	BT_MESH_LIGHT_CTRL_SRV_INIT(light_ctrl_srv, &my_ctx.lightness_srv);
 
 static struct bt_mesh_elem elements[] = {
-	BT_MESH_ELEM(1,
+	BT_MESH_ELEM(1, BT_MESH_MODEL_PTR_LIST(BT_MESH_MODEL_DFU_SRV(&dfu_srv)),
+		     BT_MESH_MODEL_PTR_LIST()),
+	BT_MESH_ELEM(2,
 		     BT_MESH_MODEL_PTR_LIST(
 			     BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_CFG_SRV),
 			     BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
@@ -248,7 +255,7 @@ static struct bt_mesh_elem elements[] = {
 			     BT_MESH_MODEL_SCENE_SRV(&scene_srv),
 			     BT_MESH_MODEL_SENSOR_SRV(&sensor_srv)),
 		     BT_MESH_MODEL_PTR_LIST()),
-	BT_MESH_ELEM(2,
+	BT_MESH_ELEM(3,
 		     BT_MESH_MODEL_PTR_LIST(
 			     BT_MESH_MODEL_LIGHT_CTRL_SRV(&light_ctrl_srv)),
 		     BT_MESH_MODEL_PTR_LIST()),
@@ -262,8 +269,19 @@ static const struct bt_mesh_comp comp = {
 
 const struct bt_mesh_comp *model_handler_init(void)
 {
+	int err;
+
 	k_work_init_delayable(&attention_blink_work, attention_blink);
 	k_work_init_delayable(&my_ctx.per_work, periodic_led_work);
+
+	err = bt_mesh_blob_io_flash_init(&blob_flash_stream, FIXED_PARTITION_ID(slot1_partition),
+					 0);
+	if (err) {
+		printk("Failed to init BLOB IO Flash module: %d\n", err);
+		// FIXME:
+	}
+
+	dfu_target_init(&blob_flash_stream);
 
 	return &comp;
 }
@@ -289,4 +307,7 @@ void model_handler_start(void)
 	if (!err) {
 		printk("Successfully enabled LC server\n");
 	}
+
+	/* Confirm the image and mark it as applied after the mesh started. */
+	dfu_target_image_confirm();
 }

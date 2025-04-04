@@ -731,20 +731,20 @@ if __name__ == "__main__":
             existing_metadata_print(metadata_path)
             sys.exit(0)
 
-#        zip = ZipFile(zip_path, "a")
-#        if FILE_NAME_IN_ZIP in zip.namelist():
+        zip = ZipFile(zip_path, "a")
+        if FILE_NAME_IN_ZIP in zip.namelist():
             # Mesh metadata already present in zip file
-#            sys.exit(0)
+            sys.exit(0)
 
         comps = parse_comp_data(elf_path, kconfigs)
 
         version = kconfigs.version_parse()
 
-        binary_size = 0
-#        if sysbuild:
-#            binary_size = os.path.getsize(os.path.join(args.bin_path, (kernel_name + '.signed.bin')))
-#        else:
-#            binary_size = os.path.getsize(os.path.join(args.bin_path, 'app_update.bin'))
+#        binary_size = 0
+        if sysbuild:
+            binary_size = os.path.getsize(os.path.join(args.bin_path, (kernel_name + '.signed.bin')))
+        else:
+            binary_size = os.path.getsize(os.path.join(args.bin_path, 'app_update.bin'))
         core_type = 1
         json_data = []
 
@@ -763,10 +763,10 @@ if __name__ == "__main__":
 
         print(json.dumps(json_data, indent=4))
 
-#        with open(metadata_path, "w") as outfile:
-#            outfile.write(json.dumps(json_data if len(json_data) > 1 else json_data[0], indent=4))
-#        zip.write(metadata_path, FILE_NAME_IN_ZIP)
-#        zip.close()
+        with open(metadata_path, "w") as outfile:
+            outfile.write(json.dumps(json_data if len(json_data) > 1 else json_data[0], indent=4))
+        zip.write(metadata_path, FILE_NAME_IN_ZIP)
+        zip.close()
 
         print("Bluetooth Mesh Composition metadata generated:")
         if len(json_data) > 1:
