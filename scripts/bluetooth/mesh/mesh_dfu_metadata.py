@@ -203,7 +203,7 @@ class Comp0:
 
             elem_offset = model.elem_idx - extended_model.elem_idx
 
-            if (elem_offset > 3) or (elem_offset < -4) or (model.mod_idx > 31):
+            if (elem_offset > 3) or (elem_offset < -4) or (extended_model.mod_idx > 31):
                 return True
 
         return False
@@ -217,7 +217,7 @@ class Comp0:
         Returns:
             bool: True if the model has a corresponding group ID, False otherwise
         """
-        return model.cor_group_id > 0
+        return model.cor_group_id >= 0
 
     def prepare_model_item_header(self, model: Model, format_long: bool) -> bytearray:
         bytestring = bytearray()
@@ -233,6 +233,7 @@ class Comp0:
 
         model_elem_info |= (len(model.extends) << 2)
         bytestring.extend(model_elem_info.to_bytes(1, 'little'))
+        print(f'Encoded model_elem_info: {model_elem_info:02x}, cor_present: {cor_present}, format_long: {format_long}, extends count: {len(model.extends):02x}')
 
         if cor_present:
             bytestring.extend(model.cor_group_id.to_bytes(1, 'little'))
@@ -253,7 +254,8 @@ class Comp0:
                 if elem_offset < 0:
                     elem_offset += 8
 
-                extended_model_item = (elem_offset) | (model.mod_idx << 3)
+                extended_model_item = (elem_offset) | (extended_model.mod_idx << 3)
+                print(f'Packing short: {elem_offset:02x}, {extended_model.mod_idx:02x}, {extended_model_item:02x})')
                 bytestring.extend(extended_model_item.to_bytes(1, 'little'))
             else:
                 if elem_offset < 0:
@@ -324,7 +326,7 @@ class Comp0:
                 print(f'Model [{model.elem_idx}:{model.mod_idx}]: Corresponding Group ID: {model.cor_group_id}, format long: {format_long}, extends count: {len(model.extends):02x}')
 
                 if len(model.extends) > 0:
-                    self.add_items_to_page(model, format_long)
+                    page_1_bs.extend(self.add_items_to_page(model, format_long))
 
         return page_1_bs
 
@@ -735,7 +737,6 @@ if __name__ == "__main__":
 #            sys.exit(0)
 
         comps = parse_comp_data(elf_path, kconfigs)
-        comps_page1 = [ comp.page_1_generate() for comp in comps ]
 
         version = kconfigs.version_parse()
 
@@ -747,15 +748,15 @@ if __name__ == "__main__":
         core_type = 1
         json_data = []
 
-        for comp in zip(comps, comps_page1):
-            page_0, page_1 = comp
-            encoded_metadata = encoded_metadata_get(version, page_0, binary_size, core_type)
+        for comp in comps:
+            page_1 = comp.page_1_generate()
+            encoded_metadata = encoded_metadata_get(version, comp, binary_size, core_type)
             json_data.append({
                 "sign_version": version,
                 "binary_size": binary_size,
                 "core_type": core_type,
-                "composition_data": page_0.dict_generate(),
-                "composition_hash": str(hex(page_0.hash_generate())),
+                "composition_data": comp.dict_generate(),
+                "composition_hash": str(hex(comp.hash_generate())),
                 "encoded_metadata": str(encoded_metadata.hex()),
                 "page_1": str(page_1.hex()),
             })
