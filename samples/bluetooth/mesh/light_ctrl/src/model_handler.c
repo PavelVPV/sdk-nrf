@@ -244,7 +244,8 @@ static struct bt_mesh_light_ctrl_srv light_ctrl_srv =
 	BT_MESH_LIGHT_CTRL_SRV_INIT(light_ctrl_srv, &my_ctx.lightness_srv);
 
 static struct bt_mesh_elem elements[] = {
-	BT_MESH_ELEM(1, BT_MESH_MODEL_PTR_LIST(BT_MESH_MODEL_DFU_SRV(&dfu_srv)),
+	BT_MESH_ELEM(1, BT_MESH_MODEL_PTR_LIST(BT_MESH_MODEL_DFU_SRV(&dfu_srv),
+					       BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_RPR_SRV)),
 		     BT_MESH_MODEL_PTR_LIST()),
 	BT_MESH_ELEM(2,
 		     BT_MESH_MODEL_PTR_LIST(
