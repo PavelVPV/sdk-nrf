@@ -38,36 +38,80 @@ def exit_with_error_msg():
     sys.exit(0)
 
 
+class Model:
+    @staticmethod
+    def create_sig_model(elem_idx: int, mod_idx: int, address: int, id: int):
+        return Model(elem_idx, mod_idx, address, id)
+
+    @staticmethod
+    def create_vnd_model(self, elem_idx: int, mod_idx: int, address: int, id: int, cid: int):
+        return Model(elem_idx, mod_idx, addr, id, True, cid)
+
+    def __init__(self, elem_idx: int, mod_idx: int, address: int, id: int, vnd: bool = False, cid: int = 0):
+        self.elem_idx = elem_idx
+        self.mod_idx = mod_idx
+        self.address = address
+        self.id = id
+        self.vnd = vnd
+        self.cid = cid
+        self.extends = []
+        self.corresponds = []
+        self.cor_group_id = -1 # -1 means no group id
+
+    def model_id(self) -> int:
+        if self.vnd:
+            return self.cid << 16 | self.id
+        return self.id
+
+    def extends_add(self, address: int):
+        self.extends.append(address)
+
+    def corresponds_add(self, address: int):
+        self.corresponds.append(address)
+
+
 class Elem:
-    def __init__(self, loc):
+    def __init__(self, loc, idx: int):
         self.loc = loc
         self.vnd_list = []
         self.sig_list = []
+        self.idx = idx
+        self.sig_idx = 0
+        self.vnd_idx = 0
 
-    def vnd_model_add(self, cid, vid):
-        self.vnd_list.append((cid << 16) + vid)
+    def vnd_model_add(self, address, cid, vid):
+        model = Model.create_vnd_model(self.idx, self.vnd_idx, address, cid, True, vid)
+        self.vnd_list.append(model)
+        self.vnd_idx += 1
+        return model
 
-    def sig_model_add(self, id):
-        self.sig_list.append(id)
+    def sig_model_add(self, address, id):
+        model = Model.create_sig_model(self.idx, self.sig_idx, address, id)
+        self.sig_list.append(model)
+        self.sig_idx += 1
+        return model
 
     def bytestring_generate(self):
         bytestring = bytearray()
         bytestring.extend(self.loc.to_bytes(2, 'little'))
-        bytestring.append(len(self.sig_list))
-        bytestring.append(len(self.vnd_list))
+
+        sig_list = [model.model_id() for model in self.sig_list]
+        vnd_list = [model.model_id() for model in self.vnd_list]
+        bytestring.append(len(sig_list))
+        bytestring.append(len(vnd_list))
 
         for sig in self.sig_list:
-            bytestring.extend(sig.to_bytes(2, 'little'))
+            bytestring.extend(sig.model_id().to_bytes(2, 'little'))
         for vnd in self.vnd_list:
-            bytestring.extend(vnd.to_bytes(4, 'little'))
+            bytestring.extend(vnd.model_id().to_bytes(4, 'little'))
 
         return bytestring
 
     def dict_generate(self):
         return {
             "location": self.loc,
-            "sig_models": self.sig_list,
-            "vendor_models": self.vnd_list,
+            "sig_models": [ model.model_id() for model in self.sig_list ],
+            "vendor_models": [ model.model_id() for model in self.vnd_list ],
         }
 
 
@@ -89,9 +133,11 @@ class Comp0:
         self.vid = vid
         self.__features_add(kconfig)
         self.hash = None
+        self.elem_idx = 0
 
     def elem_add(self, loc):
-        new_elem = Elem(loc)
+        new_elem = Elem(loc, self.elem_idx)
+        self.elem_idx += 1
         self.elems.append(new_elem)
         return new_elem
 
@@ -133,6 +179,155 @@ class Comp0:
         self.hash, *_ = struct.unpack('<L', crypto.finalize()[:4])
         return self.hash
 
+    def find_model_by_address(self, address):
+        for elem in self.elems:
+            for model in elem.sig_list + elem.vnd_list:
+                if model.address == address:
+                    return model
+        return None
+
+    def is_extended_model_items_format_long(self, model: Model) -> bool:
+        """
+        Check format for Extended_Model_Items indicator.
+
+        Parameters:
+            model (Model): Model object
+        Returns:
+            bool: True if the format is long, False if the format is short
+        """
+        for extended_model_addr in model.extends:
+            extended_model = self.find_model_by_address(extended_model_addr)
+
+            if extended_model is None:
+                raise Exception(f"Extended model not found: {extended_model_addr:02x}")
+
+            elem_offset = model.elem_idx - extended_model.elem_idx
+
+            if (elem_offset > 3) or (elem_offset < -4) or (model.mod_idx > 31):
+                return True
+
+        return False
+
+    def has_corresponding_group_id(self, model: Model) -> bool:
+        """
+        Check if the model has a corresponding group ID.
+
+        Parameters:
+            model (Model): Model object
+        Returns:
+            bool: True if the model has a corresponding group ID, False otherwise
+        """
+        return model.cor_group_id > 0
+
+    def prepare_model_item_header(self, model: Model, format_long: bool) -> bytearray:
+        bytestring = bytearray()
+
+        cor_present = self.has_corresponding_group_id(model)
+        model_elem_info = 0
+
+        if cor_present:
+            model_elem_info |= (1 << 0)
+
+        if format_long:
+            model_elem_info |= (1 << 1)
+
+        model_elem_info |= (len(model.extends) << 2)
+        bytestring.extend(model_elem_info.to_bytes(1, 'little'))
+
+        if cor_present:
+            bytestring.extend(model.cor_group_id.to_bytes(1, 'little'))
+
+        return bytestring
+
+    def add_items_to_page(self, model: Model, format_long: bool):
+        bytestring = bytearray()
+
+        for extended_model_address in model.extends:
+            extended_model = self.find_model_by_address(extended_model_address)
+            if extended_model is None:
+                raise Exception(f"Extended model not found: {extended_model_address:02x}")
+
+            elem_offset = model.elem_idx - extended_model.elem_idx
+
+            if format_long is False:
+                if elem_offset < 0:
+                    elem_offset += 8
+
+                extended_model_item = (elem_offset) | (model.mod_idx << 3)
+                bytestring.extend(extended_model_item.to_bytes(1, 'little'))
+            else:
+                if elem_offset < 0:
+                    elem_offset += 256
+
+                bytestring.extend(elem_offset.to_bytes(1, 'little'))
+                bytestring.extend(extended_model.mod_idx.to_bytes(1, 'little'))
+
+        return bytestring
+
+    def corresponding_group_id_generate(self):
+        """
+        Generate Corresponding Group ID for each model.
+
+        """
+        cor_group_id = 0
+
+        for elem in self.elems:
+            for model in elem.sig_list + elem.vnd_list:
+                if len(model.corresponds) == 0:
+                    continue
+
+                for corresponding_model_addr in model.corresponds:
+                    print(f'Model [{model.elem_idx}:{model.mod_idx}], Corresponding Model Address: {corresponding_model_addr:02x}')
+                    corresponding_model = self.find_model_by_address(corresponding_model_addr)
+                    print(f"Model [{model.elem_idx}:{model.mod_idx}], Corresponding Model: [{corresponding_model.elem_idx}:{corresponding_model.mod_idx}]")
+
+                    if self.has_corresponding_group_id(corresponding_model):
+                        model.cor_group_id = corresponding_model.cor_group_id
+
+                        print(f'Model got corresponding group ID: {model.cor_group_id:02x}')
+                    elif self.has_corresponding_group_id(model):
+                        corresponding_model.cor_group_id = model.cor_group_id
+
+                        print(f'Corresponding model got corresponding group ID: {corresponding_model.cor_group_id:02x}')
+                    else:
+                        print(f"Both models got new corresponding group ID: {cor_group_id:02x}")
+
+                        model.cor_group_id = cor_group_id
+                        corresponding_model.cor_group_id = cor_group_id
+                        cor_group_id += 1
+
+    def page_1_generate(self):
+        """
+        Generate Composition data page 1 of the composition data.
+
+        Parameters:
+            comp (Comp0): Composition data object
+        Returns:
+            Comp1: Bytestring with encoded Composition data page 1
+        """
+
+        # Fill up Corresponding_Group_IDs
+        self.corresponding_group_id_generate()
+
+        page_1_bs = bytearray()
+
+        for elem in self.elems:
+            print(f"Element {elem.idx}: Number of SIG models: {len(elem.sig_list)}, Number of VND models: {len(elem.vnd_list)}")
+            # See Table 4.7, MshPRTv1.1
+            page_1_bs.extend(len(elem.sig_list).to_bytes(1, 'little'))
+            page_1_bs.extend(len(elem.vnd_list).to_bytes(1, 'little'))
+
+            for model in elem.sig_list + elem.vnd_list:
+                format_long = self.is_extended_model_items_format_long(model)
+                page_1_bs.extend(self.prepare_model_item_header(model, format_long))
+
+                print(f'Model [{model.elem_idx}:{model.mod_idx}]: Corresponding Group ID: {model.cor_group_id}, format long: {format_long}, extends count: {len(model.extends):02x}')
+
+                if len(model.extends) > 0:
+                    self.add_items_to_page(model, format_long)
+
+        return page_1_bs
+
 
 class KConfig(dict):
 
@@ -170,12 +365,19 @@ class KConfig(dict):
                 "build_number": version_list[3],
             }
         except Exception as err :
-            raise Exception("Unable to parse CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION Kconfig option") from err
+            print(f"Unable to parse CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION Kconfig option, using 0.0.0.0")
+            return {
+                "major": 0,
+                "minor": 0,
+                "revision": 0,
+                "build_number": 0,
+            }
+#            raise Exception("Unable to parse CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION Kconfig option") from err
 
 
 def read_data_by_address(elf, address, size):
     """
-    TBA
+    Reads value from the .elf file at the specified address.
     """
     file_offset = None
     for segment in elf.iter_segments():
@@ -324,7 +526,9 @@ def read_comp_data(elf_path, addr, kconfigs):
         addr (int): Address of the composition data variable
         kconfigs (KConfig): A KConfig object representing Kconfig options used for the firmware to compile with
     Returns:
-        Parsed Composition data
+        Tuple:
+        - First element: parsed Composition data page 0
+        - Second element: parsed Composition data page 1
     """
 
     label_cnt = int(kconfigs['CONFIG_BT_MESH_LABEL_COUNT']) if 'CONFIG_BT_MESH_LABEL_COUNT' in kconfigs.keys() else 0
@@ -339,8 +543,14 @@ def read_comp_data(elf_path, addr, kconfigs):
         # The format of a model is defined by `struct bt_mesh_model` type.
         # All types are declared in `zephyr/include/zephyr/bluetooth/mesh/access.h`.
 
+        # Legend:
         # H - uint16_t, I - uint32_t, B - uint8_t
-        # H - cid, H - pid, H - vid, H - crpl, H - feat
+
+        # H - cid
+        # H - pid
+        # H - vid
+        # H - crpl
+        # H - feat
         # I - elem_count
         # I - elem_ptr
 
@@ -357,7 +567,7 @@ def read_comp_data(elf_path, addr, kconfigs):
             # B - sig_count
             # B - vnd_count
             # I - models (SIG models)
-            # I - vnd_models
+            # I - vnd_models (Vendor models)
 
             elems_value = read_symbol_data(elf, elems_ptr)
             elems_iter = struct.iter_unpack('IHBBII', elems_value)
@@ -371,15 +581,18 @@ def read_comp_data(elf_path, addr, kconfigs):
                 elem_item = comp.elem_add(loc)
 
                 def models_unpack(ptr, elem_item, vnd):
+                    # models_array is an array of pointers to models which can be stored either in
+                    # RAM or in flash.
                     models_array = read_symbol_data(elf, ptr)
 
                     models_iter = struct.iter_unpack('I', models_array)
 
-                    for model_ptr, in models_iter:
-                        print(f"Model ptr: {model_ptr:02x}")
+                    for model_addr, in models_iter:
+                        print(f"Model address: {model_addr:02x}")
                         model_format = 'HHIIHHIHHIIHHIHH' + ('I' if label_cnt > 0  else '') + 'II' + ('I' if lcd_srv else '')
 
-                        model_value = read_data_by_address(elf, model_ptr, struct.calcsize(model_format))
+                        # Read content (`struct bt_mesh_model`) of the model
+                        model_value = read_data_by_address(elf, model_addr, struct.calcsize(model_format))
 
                         # Legend:
                         # H - uint16_t, I - uint32_t, B - uint8_t
@@ -417,23 +630,28 @@ def read_comp_data(elf_path, addr, kconfigs):
 
                         id1, id2, __rt, extends, extends_cnt, _, corresponds, corresponds_cnt, _, __pub, __keys, __keys_cnt, _, __groups, __groups_cnt, _, __uuids, __op, __cb = model_value_unpacked
                         print(f"Model: {id1:04x}, {id2:04x}")
-                        print(f"Extends: {extends:08x}, {extends_cnt:04x}")
-                        print(f"Corresponds: {corresponds:08x}, {corresponds_cnt:04x}")
 
-                        if (extends != 0) and extends_cnt > 0:
-                            extends_iter = struct.iter_unpack('I', read_data_by_address(elf, extends, extends_cnt * 4))
-                            for ext, in extends_iter:
-                                print(f"Extends: {ext:08x}")
-
-                        if (corresponds != 0) and corresponds_cnt > 0:
-                            corresponds_iter = struct.iter_unpack('I', read_data_by_address(elf, corresponds, corresponds_cnt * 4))
-                            for corr, in corresponds_iter:
-                                print(f"Corresponds: {corr:08x}")
-
+                        model = None
                         if not vnd:
-                            elem_item.sig_model_add(id1)
+                            model = elem_item.sig_model_add(model_addr, id1)
                         else:
-                            elem_item.vnd_model_add(id1, id2)
+                            model = elem_item.vnd_model_add(model_addr, id1, id2)
+
+                        print(f"Extends: {extends:08x}, {extends_cnt:04x}")
+                        if (extends != 0) and extends_cnt > 0:
+                            extends_array = read_data_by_address(elf, extends, extends_cnt * 4)
+                            extends_iter = struct.iter_unpack('I', extends_array)
+                            for extended_model_addr, in extends_iter:
+                                model.extends_add(extended_model_addr)
+                                print(f"Extends: {extended_model_addr:08x}")
+
+                        print(f"Corresponds: {corresponds:08x}, {corresponds_cnt:04x}")
+                        if (corresponds != 0) and corresponds_cnt > 0:
+                            corresponds_array = read_data_by_address(elf, corresponds, corresponds_cnt * 4)
+                            corresponds_iter = struct.iter_unpack('I', corresponds_array)
+                            for corresponding_model_addr, in corresponds_iter:
+                                print(f"Corresponds: {corresponding_model_addr:08x}")
+                                model.corresponds_add(corresponding_model_addr)
 
                 if sig_count > 0:
                     models_unpack(sig_ptr, elem_item, False)
@@ -517,30 +735,37 @@ if __name__ == "__main__":
 #            sys.exit(0)
 
         comps = parse_comp_data(elf_path, kconfigs)
+        comps_page1 = [ comp.page_1_generate() for comp in comps ]
+
         version = kconfigs.version_parse()
 
-        if sysbuild:
-            binary_size = os.path.getsize(os.path.join(args.bin_path, (kernel_name + '.signed.bin')))
-        else:
-            binary_size = os.path.getsize(os.path.join(args.bin_path, 'app_update.bin'))
+        binary_size = 0
+#        if sysbuild:
+#            binary_size = os.path.getsize(os.path.join(args.bin_path, (kernel_name + '.signed.bin')))
+#        else:
+#            binary_size = os.path.getsize(os.path.join(args.bin_path, 'app_update.bin'))
         core_type = 1
         json_data = []
 
-        for comp in comps:
-            encoded_metadata = encoded_metadata_get(version, comp, binary_size, core_type)
+        for comp in zip(comps, comps_page1):
+            page_0, page_1 = comp
+            encoded_metadata = encoded_metadata_get(version, page_0, binary_size, core_type)
             json_data.append({
                 "sign_version": version,
                 "binary_size": binary_size,
                 "core_type": core_type,
-                "composition_data": comp.dict_generate(),
-                "composition_hash": str(hex(comp.hash_generate())),
+                "composition_data": page_0.dict_generate(),
+                "composition_hash": str(hex(page_0.hash_generate())),
                 "encoded_metadata": str(encoded_metadata.hex()),
+                "page_1": str(page_1.hex()),
             })
 
-        with open(metadata_path, "w") as outfile:
-            outfile.write(json.dumps(json_data if len(json_data) > 1 else json_data[0], indent=4))
-        zip.write(metadata_path, FILE_NAME_IN_ZIP)
-        zip.close()
+        print(json.dumps(json_data, indent=4))
+
+#        with open(metadata_path, "w") as outfile:
+#            outfile.write(json.dumps(json_data if len(json_data) > 1 else json_data[0], indent=4))
+#        zip.write(metadata_path, FILE_NAME_IN_ZIP)
+#        zip.close()
 
         print("Bluetooth Mesh Composition metadata generated:")
         if len(json_data) > 1:
