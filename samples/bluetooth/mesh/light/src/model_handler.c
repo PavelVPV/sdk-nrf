@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
+#include <zephyr/shell/shell.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 #include <dk_buttons_and_leds.h>
@@ -184,6 +185,7 @@ static struct bt_mesh_elem elements[] = {
 		1, BT_MESH_MODEL_PTR_LIST(
 			BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_CFG_SRV),
 			BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
+			BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_RPR_SRV),
 			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv)),
 		BT_MESH_MODEL_PTR_LIST()),
 #endif
@@ -207,19 +209,135 @@ static struct bt_mesh_elem elements[] = {
 #endif
 };
 
-static const struct bt_mesh_comp comp = {
-	.cid = CONFIG_BT_COMPANY_ID,
-	.elem = elements,
-	.elem_count = ARRAY_SIZE(elements),
+#define COMP_DECLARE(_elem_count) \
+	{ \
+		.cid = CONFIG_BT_COMPANY_ID, \
+		.elem = elements, \
+		.elem_count = _elem_count, \
+	}
+
+static const struct bt_mesh_comp comps[] = {
+	COMP_DECLARE(1), COMP_DECLARE(2), COMP_DECLARE(3), COMP_DECLARE(4)
 };
+
+static uint8_t leds_comp;
+
+static int leds_load_cb(const char *name, size_t len_rd, settings_read_cb read_cb, void *cb_arg,
+			void *param)
+{
+	static bool leds_loaded;
+
+	if (leds_loaded) {
+		return 0; // Already loaded
+	}
+
+	ssize_t len;
+
+	len = read_cb(cb_arg, &leds_comp, sizeof(leds_comp));
+	if (len < 0) {
+		printk("Failed to read value (err %zd)", len);
+		return len;
+	}
+
+	printk("Loaded LEDs: %d\n", leds_comp + 1);
+
+	if (len != len_rd) {
+		printk("Unexpected value length (%zd != %zu)", len, len_rd);
+		return -EINVAL;
+	}
+
+	leds_loaded = true;
+
+	return 0;
+}
 
 const struct bt_mesh_comp *model_handler_init(void)
 {
+	int err;
+
 	k_work_init_delayable(&attention_blink_work, attention_blink);
 
 	for (int i = 0; i < ARRAY_SIZE(led_ctx); ++i) {
 		k_work_init_delayable(&led_ctx[i].work, led_work);
 	}
 
-	return &comp;
+	err = settings_load_subtree_direct("app/leds", leds_load_cb, NULL);
+	if (err) {
+		printk("Failed to load LED settings (err %d)\n", err);
+		return &comps[0];
+	}
+
+	return &comps[leds_comp];
 }
+
+static void comp_reg_and_store_handler(struct k_work *work)
+{
+	int err;
+
+	printk("LEDs supported: %d\n", leds_comp + 1);
+
+	/* FIXME: This doesn't handle the case when reboot happens before reprovisioning.
+	 * In this case, the old composition data should be passed.
+	 */
+	err = bt_mesh_comp128_register(&comps[leds_comp]);
+	if (err) {
+		printk("Failed to register LED component (err %d)\n", err);
+		return;
+	}
+
+	err = settings_save_one("app/leds", &leds_comp, sizeof(leds_comp));
+	if (err) {
+		printk("Failed to save LED settings (err %d)\n", err);
+		return;
+	}
+}
+
+static K_WORK_DEFINE(comp_reg_and_store, comp_reg_and_store_handler);
+
+static int cmd_led_add(const struct shell *shell, size_t argc, char *argv[])
+{
+	if (leds_comp >= ARRAY_SIZE(comps)) {
+		shell_error(shell, "Maximum number of LEDs reached");
+		return -ENOMEM;
+	}
+
+	leds_comp++;
+	k_work_submit(&comp_reg_and_store);
+
+	return 0;
+}
+
+static int cmd_led_remove(const struct shell *shell, size_t argc, char *argv[])
+{
+	if (leds_comp == 0) {
+		shell_error(shell, "Maximum number of LEDs reached");
+		return -ENOMEM;
+	}
+
+	leds_comp--;
+	k_work_submit(&comp_reg_and_store);
+
+	return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(app_cmds,
+	SHELL_CMD_ARG(led_add, NULL, "Add led", cmd_led_add, 1, 0),
+	SHELL_CMD_ARG(led_remove, NULL, "Remove led", cmd_led_remove, 1, 0),
+
+	SHELL_SUBCMD_SET_END
+);
+
+static int cmd_app(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc == 1) {
+		shell_help(shell);
+		/* shell returns 1 when help is printed */
+		return 1;
+	}
+
+	shell_error(shell, "%s unknown parameter: %s", argv[0], argv[1]);
+
+	return -EINVAL;
+}
+
+SHELL_CMD_ARG_REGISTER(app, &app_cmds, "App commands", cmd_app, 1, 1);
