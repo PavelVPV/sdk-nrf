@@ -76,25 +76,28 @@ static struct bt_mesh_health_srv health_srv = {
 
 BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 
-static struct bt_mesh_model primary_models[] = {
-	BT_MESH_MODEL_CFG_SRV,
-	BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
+static const struct bt_mesh_model * primary_models[] = {
+	BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_CFG_SRV),
+	BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
 	BT_MESH_MODEL_DFD_SRV(&dfd_srv),
+	BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_RPR_CLI(&bt_mesh_shell_rpr_cli)),
 };
 
-static struct bt_mesh_model primary_vnd_models[] = {
+static const struct bt_mesh_model * primary_vnd_models[] = {
 #if CONFIG_BT_MESH_LE_PAIR_RESP
 	BT_MESH_MODEL_LE_PAIR_RESP,
 #endif
 };
 
-static struct bt_mesh_model secondary_models[] = {
+static const struct bt_mesh_model * secondary_models[] = {
 	BT_MESH_MODEL_DFU_SRV(&dfu_srv),
 };
 
 static struct bt_mesh_elem elements[] = {
-	BT_MESH_ELEM(1, primary_models, primary_vnd_models),
-	BT_MESH_ELEM(2, secondary_models, BT_MESH_MODEL_NONE),
+	BT_MESH_ELEM(1, primary_models,
+		     primary_vnd_models),
+	BT_MESH_ELEM(2, secondary_models,
+		     BT_MESH_MODEL_PTR_LIST()),
 };
 
 static const struct bt_mesh_comp comp = {
@@ -118,7 +121,8 @@ static void bt_ready(int err)
 		return;
 	}
 
-	err = bt_mesh_init(bt_mesh_dk_prov_init(), &comp);
+	err = bt_mesh_init(&bt_mesh_shell_prov, &comp);
+//	err = bt_mesh_init(bt_mesh_dk_prov_init(), &comp);
 	if (err) {
 		printk("Initializing mesh failed (err %d)\n", err);
 		return;

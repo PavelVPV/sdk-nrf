@@ -97,7 +97,7 @@ static struct bt_mesh_dfd_srv_cb dfd_srv_cb = {
 	.phase = dfd_srv_phase,
 };
 
-struct bt_mesh_dfd_srv dfd_srv = BT_MESH_DFD_SRV_INIT(&dfd_srv_cb);
+struct bt_mesh_dfd_srv dfd_srv = BT_MESH_DFD_SRV_INIT(dfd_srv, &dfd_srv_cb);
 
 void dfu_distributor_init(struct bt_mesh_blob_io_flash *flash_stream)
 {
