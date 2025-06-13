@@ -79,6 +79,7 @@ static struct bt_mesh_model models[] = {
 	BT_MESH_MODEL_CFG_SRV,
 	BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
 	BT_MESH_MODEL_DFU_SRV(&dfu_srv)
+	BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_RPR_SRV),
 };
 
 static struct bt_mesh_elem elements[] = {
@@ -138,8 +139,8 @@ int main(void)
 
 	printk("Initializing...\n");
 
-	err = bt_mesh_blob_io_flash_init(&blob_flash_stream, FIXED_PARTITION_ID(slot1_partition),
-					 0);
+	err = bt_mesh_blob_io_flash_init(&blob_flash_stream,
+				     FIXED_PARTITION_ID(slot1_partition), 0);
 	if (err) {
 		printk("Failed to init BLOB IO Flash module: %d\n", err);
 		return 1;

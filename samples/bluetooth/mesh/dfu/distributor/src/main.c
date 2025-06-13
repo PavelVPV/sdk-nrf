@@ -169,8 +169,8 @@ int main(void)
 
 	printk("Initializing...\n");
 
-	err = bt_mesh_blob_io_flash_init(&blob_flash_stream, FIXED_PARTITION_ID(slot1_partition),
-					 0);
+	err = bt_mesh_blob_io_flash_init(&blob_flash_stream,
+					 FIXED_PARTITION_ID(slot1_partition), 0);
 	if (err) {
 		printk("Failed to init BLOB IO Flash module: %d\n", err);
 		return 1;

@@ -19,8 +19,14 @@
 
 #include <zephyr/dfu/mcuboot.h>
 
+#define LOG_LEVEL 4
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(dfu_target);
+
 static struct bt_mesh_blob_io_flash *blob_flash_stream;
 static enum bt_mesh_dfu_effect img_effect = BT_MESH_DFU_EFFECT_NONE;
+static size_t firmware_size;
+static size_t cdp_size;
 
 static struct bt_mesh_dfu_img dfu_imgs[] = { {
 	.fwid = &((struct mcuboot_img_sem_ver){}),
@@ -125,7 +131,7 @@ static int dfu_meta_check(struct bt_mesh_dfu_srv *srv,
 	}
 
 	if (flash_area_size_get(FIXED_PARTITION_ID(slot0_partition)) < metadata.fw_size ||
-	    flash_area_size_get(FIXED_PARTITION_ID(slot1_partition)) < metadata.fw_size) {
+	    flash_area_size_get(FIXED_PARTITION_ID(slot1_partition)) < metadata.fw_size + metadata.cdp_size) {
 		printk("New firmware won't fit into flash.");
 		return -EINVAL;
 	}
@@ -143,6 +149,9 @@ static int dfu_meta_check(struct bt_mesh_dfu_srv *srv,
 	} else {
 		img_effect = BT_MESH_DFU_EFFECT_UNPROV;
 	}
+
+	firmware_size = metadata.fw_size;
+	cdp_size = metadata.cdp_size;
 
 #else
 	img_effect = BT_MESH_DFU_EFFECT_UNPROV;
@@ -167,6 +176,61 @@ static int dfu_start(struct bt_mesh_dfu_srv *srv,
 	return 0;
 }
 
+static void cdp_read(void)
+{
+	struct {
+		uint16_t page128_size;
+		uint16_t page129_size;
+	} header;
+	int err;
+
+	err = flash_area_read(blob_flash_stream->area,
+		       blob_flash_stream->offset + firmware_size,
+		       &header, sizeof(header));
+	if (err) {
+		printk("Failed to read CDP header: %d\n", err);
+		return;
+	}
+
+	printk("CDP header:\n");
+	printk("\tPage 0: %u\n", header.page128_size);
+	printk("\tPage 1: %u\n", header.page129_size);
+
+	__ASSERT_NO_MSG(header.page128_size <= 255);
+	__ASSERT_NO_MSG(header.page129_size <= 255);
+
+	NET_BUF_SIMPLE_DEFINE(page128_buf, 255);
+	NET_BUF_SIMPLE_DEFINE(page129_buf, 255);
+
+	size_t page128_offset = blob_flash_stream->offset + firmware_size + sizeof(header);
+	size_t page129_offset = page128_offset + header.page128_size;
+
+	err = flash_area_read(blob_flash_stream->area, page128_offset, page128_buf.data,
+			      header.page128_size);
+	if (err) {
+		printk("Failed to read CDP page 128: %d\n", err);
+		return;
+	}
+
+	err = flash_area_read(blob_flash_stream->area, page129_offset, page129_buf.data,
+			      header.page129_size);
+	if (err) {
+		printk("Failed to read CDP page 129: %d\n", err);
+		return;
+	}
+
+	// FIXME: Actually, no need for mesh to store the composition data again.
+
+	LOG_HEXDUMP_WRN(&page128_buf, page128_buf.len, "CDP Page 128");
+	LOG_HEXDUMP_WRN(&page129_buf, page129_buf.len, "CDP Page 129");
+
+	err = bt_mesh_new_comp_data_store(&page128_buf, &page129_buf);
+	if (err) {
+		printk("Failed to store new composition data: %d\n", err);
+		return;
+	}
+}
+
 static void dfu_end(struct bt_mesh_dfu_srv *srv, const struct bt_mesh_dfu_img *img, bool success)
 {
 	printk("Firmware upload %s\n", success ? "succeeded" : "failed");
@@ -174,6 +238,8 @@ static void dfu_end(struct bt_mesh_dfu_srv *srv, const struct bt_mesh_dfu_img *i
 	if (!success) {
 		return;
 	}
+
+	cdp_read();
 
 	/* TODO: Add verification code here. */
 

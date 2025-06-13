@@ -26,6 +26,7 @@ from cryptography.hazmat.primitives.ciphers import algorithms
 from zipfile import ZipFile
 import traceback
 import argparse
+import shutil
 
 FILE_NAME_IN_ZIP = 'ble_mesh_metadata.json'
 FILE_NAME = 'dfu_application.zip_ble_mesh_metadata.json'
@@ -149,7 +150,7 @@ class Comp0:
         for i, opt in enumerate(self.FEATURE_KCONF_OPTS):
             self.feat += (1 if kconfig.get(opt) == 'y' else 0) << i
 
-    def __bytestring_generate(self):
+    def bytestring_generate(self):
         bytestring = bytearray()
         bytestring.extend(self.cid.to_bytes(2, 'little'))
         bytestring.extend(self.pid.to_bytes(2, 'little'))
@@ -175,7 +176,7 @@ class Comp0:
     def hash_generate(self):
         # Uses 16-byte zero key
         crypto = cmac.CMAC(algorithms.AES(bytes(16)))
-        crypto.update(bytes(self.__bytestring_generate()))
+        crypto.update(bytes(self.bytestring_generate()))
         self.hash, *_ = struct.unpack('<L', crypto.finalize()[:4])
         return self.hash
 
@@ -678,6 +679,11 @@ def parse_comp_data(elf_path, kconfigs):
     except Exception as err:
         raise Exception("Failed to extract composition data from .elf file") from err
 
+def cdp_size_get(comp):
+    page_1 = comp.page_1_generate()
+    cdp_size = len(comp.bytestring_generate()) + len(page_1)
+    return cdp_size
+
 def encoded_metadata_get(version, comp, binary_size, core_type):
     elem_cnt = len(comp.elems)
 
@@ -687,6 +693,7 @@ def encoded_metadata_get(version, comp, binary_size, core_type):
     bytestring.extend(version["revision"].to_bytes(2, 'little'))
     bytestring.extend(version["build_number"].to_bytes(4, 'little'))
     bytestring.extend(binary_size.to_bytes(3, 'little'))
+    bytestring.extend(cdp_size_get(comp).to_bytes(2, 'little'))
     bytestring.append(core_type)
     bytestring.extend(comp.hash_generate().to_bytes(4, 'little'))
     bytestring.extend(elem_cnt.to_bytes(2, 'little'))
@@ -704,6 +711,50 @@ def existing_metadata_print(path):
         print(json.dumps(json.load(metadata_file), indent=4))
     except Exception as err :
         raise Exception("Failed to get existing metadata") from err
+
+def cdp_size_header_get(comp):
+    page0_size = len(comp.bytestring_generate())
+    page1_size = len(comp.page_1_generate())
+
+    hdr = bytearray()
+    hdr.extend(page0_size.to_bytes(2, 'little'))
+    hdr.extend(page1_size.to_bytes(2, 'little'))
+
+    return hdr
+
+def cdp_size_append(bin_path, comp):
+    with open(bin_path, 'ab') as f:
+        page0_size = len(comp.bytestring_generate())
+        page1_size = len(comp.page_1_generate())
+
+        hdr = bytearray()
+        hdr.extend(page0_size.to_bytes(2, 'little'))
+        hdr.extend(page1_size.to_bytes(2, 'little'))
+
+        f.write(hdr)
+
+def cdp_size_append_to_zip(zip_path, orig_bin_file, comp):
+    temp_zip_path = zip_path + ".temp"
+
+    cdp_size_header = cdp_size_header_get(comp)
+    page_0 = comp.bytestring_generate()
+    page_1 = comp.page_1_generate()
+
+    with ZipFile(zip_path, 'r') as zip_read:
+        with ZipFile(temp_zip_path, 'w') as zip_write:
+            for item in zip_read.infolist():
+                if item.filename.endswith('.signed.bin'):
+                    with open(orig_bin_file, 'rb') as bin_file:
+                        bin_data = bin_file.read()
+                        bin_data += cdp_size_header
+                        bin_data += page_0
+                        bin_data += page_1
+
+                        zip_write.writestr(item.filename, bin_data)
+                else:
+                    zip_write.writestr(item.filename, zip_read.read(item.filename))
+
+    os.replace(temp_zip_path, zip_path)
 
 if __name__ == "__main__":
     try:
@@ -754,6 +805,7 @@ if __name__ == "__main__":
             json_data.append({
                 "sign_version": version,
                 "binary_size": binary_size,
+                "cdp_size": cdp_size_get(comp),
                 "core_type": core_type,
                 "composition_data": comp.dict_generate(),
                 "composition_hash": str(hex(comp.hash_generate())),
@@ -767,6 +819,9 @@ if __name__ == "__main__":
             outfile.write(json.dumps(json_data if len(json_data) > 1 else json_data[0], indent=4))
         zip.write(metadata_path, FILE_NAME_IN_ZIP)
         zip.close()
+
+        cdp_size_append_to_zip(zip_path, os.path.join(args.bin_path, (kernel_name + '.signed.bin')),
+                               comp)
 
         print("Bluetooth Mesh Composition metadata generated:")
         if len(json_data) > 1:
