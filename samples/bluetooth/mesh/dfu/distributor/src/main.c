@@ -14,6 +14,7 @@
 #include <zephyr/bluetooth/mesh/shell.h>
 #include <bluetooth/mesh/vnd/le_pair_resp.h>
 #include <bluetooth/mesh/dk_prov.h>
+#include <bluetooth/mesh/models.h>
 #include <dk_buttons_and_leds.h>
 #include "smp_bt.h"
 #include "dfu_dist.h"
@@ -76,12 +77,31 @@ static struct bt_mesh_health_srv health_srv = {
 
 BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 
+static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
+		    const struct bt_mesh_onoff_set *set,
+		    struct bt_mesh_onoff_status *rsp)
+{
+}
+
+static void led_get(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
+		    struct bt_mesh_onoff_status *rsp)
+{
+}
+
+static const struct bt_mesh_onoff_srv_handlers onoff_handlers = {
+	.set = led_set,
+	.get = led_get,
+};
+
+//static struct bt_mesh_onoff_srv onoff_srv = BT_MESH_ONOFF_SRV_INIT(onoff_srv, &onoff_handlers);
+
 #if 1
 static const struct bt_mesh_model * primary_models[] = {
 	BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_CFG_SRV),
 	BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
 	BT_MESH_MODEL_DFD_SRV(&dfd_srv),
 	BT_MESH_MODEL_DECLARE(BT_MESH_MODEL_RPR_CLI(&bt_mesh_shell_rpr_cli)),
+//	BT_MESH_MODEL_ONOFF_SRV(&onoff_srv),
 };
 
 static const struct bt_mesh_model * primary_vnd_models[] = {

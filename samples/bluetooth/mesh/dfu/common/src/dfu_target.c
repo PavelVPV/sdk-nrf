@@ -184,6 +184,13 @@ static void cdp_read(void)
 	} header;
 	int err;
 
+	// FIXME: ???
+	err = flash_area_open(blob_flash_stream->area_id, &blob_flash_stream->area);
+	if (err) {
+		printk("Failed to open flash area: %d\n", err);
+		return;
+	}
+
 	err = flash_area_read(blob_flash_stream->area,
 		       blob_flash_stream->offset + firmware_size,
 		       &header, sizeof(header));
