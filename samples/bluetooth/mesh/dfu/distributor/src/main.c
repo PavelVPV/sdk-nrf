@@ -21,6 +21,8 @@
 #include "dfu_dist.h"
 #include "dfu_target.h"
 
+#include <zephyr/dfu/mcuboot.h>
+
 static struct bt_mesh_blob_io_flash blob_flash_stream;
 
 /* Set up a repeating delayed work to blink the DK's LEDs when attention is
@@ -152,7 +154,6 @@ static const struct bt_mesh_comp comp = {
 
 static void reboot_work_handler(struct k_work *work)
 {
-	printk("Rebooting...\n");
 	sys_reboot(SYS_REBOOT_WARM);
 }
 
@@ -160,7 +161,8 @@ static K_WORK_DELAYABLE_DEFINE(reboot_work, reboot_work_handler);
 
 static void reprovisioned(uint16_t addr)
 {
-	printk("Reprovisioned by RPR client, address: 0x%04x\n", addr);
+	printk("Reprovisioned by RPR client, address: 0x%04x. Rebooting...\n", addr);
+	boot_request_upgrade(BOOT_UPGRADE_TEST);
 	k_work_schedule(&reboot_work, K_SECONDS(3));
 }
 

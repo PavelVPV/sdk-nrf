@@ -33,6 +33,8 @@ static struct bt_mesh_dfu_img dfu_imgs[] = { {
 	.fwid_len = sizeof(struct mcuboot_img_sem_ver),
 } };
 
+static struct mcuboot_img_sem_ver new_fwid;
+
 #if defined(CONFIG_BT_MESH_DFU_METADATA)
 static size_t flash_area_size_get(uint8_t area_id)
 {
@@ -148,6 +150,7 @@ static int dfu_meta_check(struct bt_mesh_dfu_srv *srv,
 		img_effect = BT_MESH_DFU_EFFECT_NONE;
 	} else {
 		img_effect = BT_MESH_DFU_EFFECT_COMP_CHANGE;
+		memcpy(&new_fwid, &metadata.fw_ver, sizeof(new_fwid));
 //		img_effect = BT_MESH_DFU_EFFECT_UNPROV;
 	}
 
@@ -246,8 +249,6 @@ static void dfu_end(struct bt_mesh_dfu_srv *srv, const struct bt_mesh_dfu_img *i
 		return;
 	}
 
-	cdp_read();
-
 	/* TODO: Add verification code here. */
 
 	bt_mesh_dfu_srv_verified(srv);
@@ -282,7 +283,14 @@ static int dfu_apply(struct bt_mesh_dfu_srv *srv, const struct bt_mesh_dfu_img *
 	printk("Applying the new firmware\n");
 
 	if (img_effect == BT_MESH_DFU_EFFECT_COMP_CHANGE) {
+		cdp_read();
+
 		bt_mesh_dfu_srv_applied(srv);
+
+		((struct mcuboot_img_sem_ver *)dfu_imgs[0].fwid)->major = new_fwid.major;
+		((struct mcuboot_img_sem_ver *)dfu_imgs[0].fwid)->minor = new_fwid.minor;
+		((struct mcuboot_img_sem_ver *)dfu_imgs[0].fwid)->revision = new_fwid.revision;
+		((struct mcuboot_img_sem_ver *)dfu_imgs[0].fwid)->build_num = new_fwid.build_num;
 
 		printk("Fimrware applied, pending RPR client for reprovisioning...\n");
 		return 0;
@@ -353,6 +361,8 @@ void dfu_target_image_confirm(void)
 	if (err) {
 		printk("Failed to confirm image: %d\n", err);
 	}
+
+	printk("Image confirmed\n");
 
 	/* Switch DFU Server state to the Idle state if it was in the Applying state. */
 //	bt_mesh_dfu_srv_applied(&dfu_srv);
