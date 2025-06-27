@@ -147,7 +147,8 @@ static int dfu_meta_check(struct bt_mesh_dfu_srv *srv,
 	if (hash == metadata.comp_hash) {
 		img_effect = BT_MESH_DFU_EFFECT_NONE;
 	} else {
-		img_effect = BT_MESH_DFU_EFFECT_UNPROV;
+		img_effect = BT_MESH_DFU_EFFECT_COMP_CHANGE;
+//		img_effect = BT_MESH_DFU_EFFECT_UNPROV;
 	}
 
 	firmware_size = metadata.fw_size;
@@ -212,14 +213,16 @@ static void cdp_read(void)
 	size_t page128_offset = blob_flash_stream->offset + firmware_size + sizeof(header);
 	size_t page129_offset = page128_offset + header.page128_size;
 
-	err = flash_area_read(blob_flash_stream->area, page128_offset, page128_buf.data,
+	err = flash_area_read(blob_flash_stream->area, page128_offset,
+			      net_buf_simple_add(&page128_buf, header.page128_size),
 			      header.page128_size);
 	if (err) {
 		printk("Failed to read CDP page 128: %d\n", err);
 		return;
 	}
 
-	err = flash_area_read(blob_flash_stream->area, page129_offset, page129_buf.data,
+	err = flash_area_read(blob_flash_stream->area, page129_offset,
+			      net_buf_simple_add(&page129_buf, header.page129_size),
 			      header.page129_size);
 	if (err) {
 		printk("Failed to read CDP page 129: %d\n", err);
@@ -227,9 +230,6 @@ static void cdp_read(void)
 	}
 
 	// FIXME: Actually, no need for mesh to store the composition data again.
-
-	LOG_HEXDUMP_WRN(&page128_buf, page128_buf.len, "CDP Page 128");
-	LOG_HEXDUMP_WRN(&page129_buf, page129_buf.len, "CDP Page 129");
 
 	err = bt_mesh_new_comp_data_store(&page128_buf, &page129_buf);
 	if (err) {
@@ -280,6 +280,13 @@ static int dfu_apply(struct bt_mesh_dfu_srv *srv, const struct bt_mesh_dfu_img *
 	static struct k_work_delayable pending_reboot;
 
 	printk("Applying the new firmware\n");
+
+	if (img_effect == BT_MESH_DFU_EFFECT_COMP_CHANGE) {
+		bt_mesh_dfu_srv_applied(srv);
+
+		printk("Fimrware applied, pending RPR client for reprovisioning...\n");
+		return 0;
+	}
 
 	boot_request_upgrade(BOOT_UPGRADE_TEST);
 
@@ -348,5 +355,5 @@ void dfu_target_image_confirm(void)
 	}
 
 	/* Switch DFU Server state to the Idle state if it was in the Applying state. */
-	bt_mesh_dfu_srv_applied(&dfu_srv);
+//	bt_mesh_dfu_srv_applied(&dfu_srv);
 }

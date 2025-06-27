@@ -195,11 +195,12 @@ static int bt_mesh_onoff_srv_init(const struct bt_mesh_model *model)
 {
 	struct bt_mesh_onoff_srv *srv = model->rt->user_data;
 
+#if 0
 	srv->pub.msg = &srv->pub_buf;
 	srv->pub.update = update_handler;
 	net_buf_simple_init_with_data(&srv->pub_buf, srv->pub_data,
 				      sizeof(srv->pub_data));
-
+#endif
 	return 0;
 }
 

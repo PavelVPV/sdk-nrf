@@ -46,7 +46,7 @@ class Model:
 
     @staticmethod
     def create_vnd_model(self, elem_idx: int, mod_idx: int, address: int, id: int, cid: int):
-        return Model(elem_idx, mod_idx, addr, id, True, cid)
+        return Model(elem_idx, mod_idx, address, id, True, cid)
 
     def __init__(self, elem_idx: int, mod_idx: int, address: int, id: int, vnd: bool = False, cid: int = 0):
         self.elem_idx = elem_idx
