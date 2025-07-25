@@ -100,7 +100,7 @@ static struct bt_mesh_onoff_srv onoff_srv = BT_MESH_ONOFF_SRV_INIT(onoff_srv, &o
 
 static struct bt_mesh_cfg_cli cfg_cli;
 
-static struct bt_mesh_rpr_cli rpr_cli = BT_MESH_RPR_CLI_INIT(rpr_cli);
+static struct bt_mesh_rpr_cli rpr_cli = BT_MESH_RPR_CLI_INIT(rpr_cli, NULL);
 
 #if 1
 static const struct bt_mesh_model * primary_models[] = {
