@@ -35,6 +35,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: pavelvpv
+      url-base: https://github.com/pavelvpv
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -63,9 +65,9 @@ manifest:
     #
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
-    - name: zephyr
+    - name: pavelvpv
       repo-path: sdk-zephyr
-      revision: d24c26f9852942beb447cd6a352aa95873fb6b7a
+      revision: develop/NCSDK-33631_test_zephyr_changes_in_test_framework
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
