@@ -203,6 +203,8 @@ There are multiple ways to generate and register these certificates:
 
       #. If the files are placed correctly, the :ref:`lib_mqtt_helper` library finds the certificates and provisions them to the Mbed TLS stack when connecting to AWS IoT.
 
+For a detailed comparison of the provisioning flows — including step-by-step breakdowns, flow diagrams, and a feature comparison table — see :ref:`aws_iot_provisioning_comparison`.
+
 .. rst-class:: numbered-step
 
 .. _creating_a_policy:
