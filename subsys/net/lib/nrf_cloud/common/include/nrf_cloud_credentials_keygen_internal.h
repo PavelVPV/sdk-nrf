@@ -26,7 +26,7 @@ extern "C" {
  *
  * @return The PSA key id (psa_key_id_t) for the on-device key.
  */
-uint32_t nrf_cloud_credentials_keygen_key_id(uint32_t sec_tag);
+psa_key_id_t nrf_cloud_credentials_keygen_key_id(uint32_t sec_tag);
 
 /** @brief Check whether an on-device key exists in PSA secure key storage.
  *

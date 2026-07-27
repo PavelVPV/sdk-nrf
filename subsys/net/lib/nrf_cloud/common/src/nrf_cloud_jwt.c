@@ -154,7 +154,12 @@ static int custom_jwt_generate(uint32_t exp_delta_s, char *const jwt_buf, size_t
 	/* The device key was generated on-device and resides in PSA. Use it
 	 * directly by its key id so the private key never leaves PSA.
 	 */
-	kid = (psa_key_id_t)nrf_cloud_credentials_keygen_key_id(sec_tag);
+	if (!nrf_cloud_credentials_keygen_key_exists(sec_tag)) {
+		LOG_ERR("No key found for sec_tag %d", sec_tag);
+		return -ENOENT;
+	}
+
+	kid = nrf_cloud_credentials_keygen_key_id(sec_tag);
 #else
 	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
 	uint8_t priv_key[PRV_KEY_SZ];

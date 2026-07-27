@@ -196,9 +196,9 @@ int nrf_cloud_credentials_key_delete(uint32_t sec_tag)
 	return 0;
 }
 
-uint32_t nrf_cloud_credentials_keygen_key_id(uint32_t sec_tag)
+psa_key_id_t nrf_cloud_credentials_keygen_key_id(uint32_t sec_tag)
 {
-	return (uint32_t)KEYGEN_KEY_ID(sec_tag);
+	return KEYGEN_KEY_ID(sec_tag);
 }
 
 int nrf_cloud_credentials_key_restore(void)
