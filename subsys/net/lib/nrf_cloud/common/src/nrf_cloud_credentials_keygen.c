@@ -33,8 +33,7 @@ LOG_MODULE_REGISTER(nrf_cloud_credentials_keygen, CONFIG_NRF_CLOUD_LOG_LEVEL);
  * library only ever uses one device key sec tag, so this is sufficient. The
  * single-sec-tag limitation is documented in the public API.
  */
-static psa_key_id_t registered_key_id;
-static bool key_registered;
+static psa_key_id_t registered_key_id = PSA_KEY_ID_NULL;
 
 /* A single backing slot means only one sec tag can be registered at a time.
  * Returns true if a different sec tag is already registered, so registering
@@ -42,7 +41,7 @@ static bool key_registered;
  */
 static bool registration_conflict(uint32_t sec_tag)
 {
-	return key_registered && registered_key_id != KEYGEN_KEY_ID(sec_tag);
+	return registered_key_id != PSA_KEY_ID_NULL && registered_key_id != KEYGEN_KEY_ID(sec_tag);
 }
 
 static int register_key(uint32_t sec_tag)
@@ -64,11 +63,13 @@ static int register_key(uint32_t sec_tag)
 		/* Already registered (for example restored earlier this boot). */
 		err = 0;
 	} else if (err) {
+		registered_key_id = PSA_KEY_ID_NULL;
+
 		LOG_ERR("Failed to register PSA key for sec tag %u, error: %d", sec_tag, err);
 		return err;
+	} else {
+		/* To satisfy MISRA C-2021 rule 15.7. */
 	}
-
-	key_registered = true;
 
 	return 0;
 }
@@ -186,9 +187,8 @@ int nrf_cloud_credentials_key_delete(uint32_t sec_tag)
 	}
 
 	/* Free the single registration slot so another sec tag can be used. */
-	if (key_registered && registered_key_id == KEYGEN_KEY_ID(sec_tag)) {
-		key_registered = false;
-		registered_key_id = 0;
+	if (registered_key_id != PSA_KEY_ID_NULL && registered_key_id == KEYGEN_KEY_ID(sec_tag)) {
+		registered_key_id = PSA_KEY_ID_NULL;
 	}
 
 	LOG_INF("Deleted device key in sec tag %u", sec_tag);
