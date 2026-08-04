@@ -33,6 +33,7 @@
 #include <system/core.h>
 #include <vtf_monitoring/vtf_monitoring.h>
 #include <drivers/wifi/nrf71/nrf71_wifi_coex.h>
+#include <vtf_monitoring/vtf_monitoring.h>
 
 #ifdef CONFIG_NRF71_STA_MODE
 #include <zephyr/net/wifi_nm.h>
@@ -582,7 +583,12 @@ enum nrf_wifi_status nrf_wifi_sys_fmac_dev_add_zep(struct nrf_wifi_drv_priv_zep 
 		goto err;
 	}
 
-	/* Firmware reads 3 words from here; index 0 is the init word. */
+	/* Point the firmware at the live VTF snapshot region maintained by the
+	 * vtf_monitoring subsystem (selected by the driver). The battery-voltage
+	 * entry is the first of the three consecutive words (voltage,
+	 * temperature, frequency) the firmware reads; the preceding
+	 * initialization word is not included.
+	 */
 	rpu_ctx_zep->vtf_buffer_start_address =
 		(unsigned int)&vtf_snapshots[VTF_CH_BATTERY_VOLTAGE];
 
@@ -625,7 +631,9 @@ enum nrf_wifi_status nrf_wifi_sys_fmac_dev_rem_zep(struct nrf_wifi_drv_priv_zep 
 				   (void *)rpu_ctx_zep->phy_rf_params_addr[i]);
 		rpu_ctx_zep->phy_rf_params_addr[i] = 0;
 	}
-	/* vtf_snapshots is static, not heap: never free. */
+	/* vtf_buffer_start_address points at the static vtf_snapshots region,
+	 * not heap memory, so it must not be freed.
+	 */
 	rpu_ctx_zep->vtf_buffer_start_address = 0;
 	nrf_wifi_mem_free(NRF_WIFI_MEM_POOL_TYPE_CTRL, rpu_ctx_zep->extended_capa);
 	rpu_ctx_zep->extended_capa = NULL;

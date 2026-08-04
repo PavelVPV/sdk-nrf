@@ -120,7 +120,12 @@ int nrf_wifi_off_raw_tx_init(uint8_t *mac_addr, unsigned char *country_code)
 		goto err;
 	}
 
-	/* Firmware reads 3 words from here; index 0 is the init word. */
+	/* Point the firmware at the live VTF snapshot region maintained by the
+	 * vtf_monitoring subsystem (selected by the driver). The battery-voltage
+	 * entry is the first of the three consecutive words (voltage,
+	 * temperature, frequency) the firmware reads; the preceding
+	 * initialization word is not included.
+	 */
 	drv_ctx->vtf_buffer_start_address =
 		(unsigned int)&vtf_snapshots[VTF_CH_BATTERY_VOLTAGE];
 
@@ -225,7 +230,16 @@ void nrf_wifi_off_raw_tx_deinit(void)
 	       sizeof(phy_rf_params_addr));
 	memset(drv_ctx->phy_rf_params_addr, 0, sizeof(drv_ctx->phy_rf_params_addr));
 
-	/* vtf_snapshots is static, not heap: never free. */
+	for (i = 0; i < NUM_RF_PARAM_ADDRS; i++) {
+		if (drv_ctx->phy_rf_params_addr[i]) {
+			nrf_wifi_mem_free(NRF_WIFI_MEM_POOL_TYPE_CTRL,
+					   (void *)drv_ctx->phy_rf_params_addr[i]);
+			drv_ctx->phy_rf_params_addr[i] = 0;
+		}
+	}
+	/* vtf_buffer_start_address points at the static vtf_snapshots region,
+	 * not heap memory, so it must not be freed.
+	 */
 	drv_ctx->vtf_buffer_start_address = 0;
 
 	k_spin_unlock(&off_raw_tx_drv_priv.lock, key);

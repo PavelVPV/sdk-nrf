@@ -34,6 +34,16 @@ enum nrf_wifi_frequency_bands {
 	NRF_WIFI_FREQ_BAND_5_GHZ,
 	NRF_WIFI_FREQ_BAND_6_GHZ,
 };
+#include <vtf_monitoring/vtf_monitoring.h>
+#else
+#include <fmac_main.h>
+#include <util.h>
+#if defined(CONFIG_NRF70_SR_COEX)
+#include <coex.h>
+#endif
+#endif /* CONFIG_NRF71_RADIO_TEST */
+#include "nrf_wifi_radio_test_shell.h"
+#include "common/fmac_api_common.h"
 
 struct nrf_wifi_rt_drv_ctx *ctx = &rt_drv_priv.drv_ctx;
 
@@ -345,7 +355,12 @@ enum nrf_wifi_status nrf_wifi_radio_test_conf_init(struct rpu_conf_params *conf_
 		memcpy(conf_params->rf_params_addr, rf_params_tmp,
 		       sizeof(conf_params->rf_params_addr));
 
-		/* Firmware reads 3 words from here; index 0 is the init word. */
+		/* Point the firmware at the live VTF snapshot region maintained
+		 * by the vtf_monitoring subsystem. The battery-voltage entry is
+		 * the first of the three consecutive words (voltage, temperature,
+		 * frequency) the firmware reads; the preceding initialization
+		 * word is not included.
+		 */
 		conf_params->vtf_buffer_addr =
 			(unsigned int)&vtf_snapshots[VTF_CH_BATTERY_VOLTAGE];
 	}

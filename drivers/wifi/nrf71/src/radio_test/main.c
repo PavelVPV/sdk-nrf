@@ -70,7 +70,12 @@ static enum nrf_wifi_status nrf_wifi_rt_drv_dev_add(struct nrf_wifi_rt_drv_priv 
 		goto err;
 	}
 
-	/* Firmware reads 3 words from here; index 0 is the init word. */
+	/* Point the firmware at the live VTF snapshot region maintained by the
+	 * vtf_monitoring subsystem (selected by the driver). The battery-voltage
+	 * entry is the first of the three consecutive words (voltage,
+	 * temperature, frequency) the firmware reads; the preceding
+	 * initialization word is not included.
+	 */
 	drv_ctx->vtf_buffer_start_address =
 		(unsigned int)&vtf_snapshots[VTF_CH_BATTERY_VOLTAGE];
 
