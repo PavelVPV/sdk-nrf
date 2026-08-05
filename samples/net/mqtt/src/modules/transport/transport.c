@@ -231,6 +231,17 @@ static void connect_work_fn(struct k_work *work)
 		.device_id.size = strlen(client_id),
 	};
 
+	if (s_obj.status != NETWORK_CONNECTED) {
+		/* The network went down (e.g. a Wi-Fi roam to a different AP) some time
+		 * between this work being scheduled and it actually running. Dialing in
+		 * now would very likely time out against an unstable link. Skip this
+		 * attempt; disconnected_run()/connected_run() will reschedule us once a
+		 * fresh NETWORK_CONNECTED is observed.
+		 */
+		LOG_DBG("Network not connected, skipping MQTT connect attempt");
+		return;
+	}
+
 	err = client_id_get(client_id, sizeof(client_id));
 	if (err) {
 		LOG_ERR("client_id_get, error: %d", err);
