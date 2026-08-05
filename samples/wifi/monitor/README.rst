@@ -124,6 +124,44 @@ Offline net capture
 
 .. include:: /includes/offline_net_capture.txt
 
+Troubleshooting
+****************
+
+USB connector for offline capture
+==================================
+
+The DK exposes two separate USB connectors. Only the one wired to the SoC's own USB
+peripheral carries the CDC-ECM network device used for offline capture
+(:file:`overlay-netusb.conf`) — the J-Link/debug USB connector only provides programming
+and the serial console, and never exposes a network interface. If the sample logs
+``Network capture of Wi-Fi traffic enabled`` but the host shows no new ``enx...``
+interface (or a ``net_if send failure status -115`` log), plug a cable into the
+board's dedicated USB connector in addition to the debug one.
+
+Truncated or incomplete captured frames
+========================================
+
+:kconfig:option:`CONFIG_MONITOR_MODE_WIFI_PACKET_FILTER_CAPTURE_LEN` defaults to 64
+bytes, which truncates every captured frame at that length. This is enough for headers
+and short frames, but not for larger management or EAPOL frames (for example, the WPA/WPA2
+4-way handshake), where truncation can silently break offline decryption in a packet
+analyzer. Raise this option (up to 1552, its maximum) if you need full-frame capture.
+
+Channel selection, regulatory domain, and DFS
+==============================================
+
+:kconfig:option:`CONFIG_MONITOR_MODE_CHANNEL` is fixed for the whole capture session; the
+sample does not scan or follow the AP. Set it to the channel your AP/STA link actually
+uses, and set :kconfig:option:`CONFIG_MONITOR_MODE_REG_DOMAIN_ALPHA2` to your real country
+code — the default world domain (``"00"``) can prevent the radio from tuning to some 5GHz
+channels.
+
+If the AP operates on a DFS channel (5GHz, roughly channels 52-144), also enable
+:kconfig:option:`CONFIG_WIFI_NRF70_SCAN_DISABLE_DFS_CHANNELS` to hold that channel
+steady. Note that an AP on a DFS channel can still perform a radar-avoidance Channel
+Switch Announcement at any time; the sample does not follow such switches, so the
+capture will go silent until the sample is reconfigured for the new channel.
+
 Dependencies
 ************
 
