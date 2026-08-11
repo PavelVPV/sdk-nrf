@@ -64,6 +64,8 @@ static void connectivity_event_handler(struct net_mgmt_event_callback *cb,
 	}
 }
 
+#include <zephyr/net/net_if.h>
+
 static void network_task(void)
 {
 	int err;
@@ -75,6 +77,13 @@ static void network_task(void)
 	/* Setup handler for Zephyr NET Connection Manager Connectivity layer. */
 	net_mgmt_init_event_callback(&conn_cb, connectivity_event_handler, CONN_LAYER_EVENT_MASK);
 	net_mgmt_add_event_callback(&conn_cb);
+
+	struct net_if *iface = net_if_get_first_wifi();
+	struct net_linkaddr *mac = net_if_get_link_addr(iface);
+
+	LOG_INF("Wi-Fi MAC: %02x:%02x:%02x:%02x:%02x:%02x",
+	        mac->addr[0], mac->addr[1], mac->addr[2],
+	        mac->addr[3], mac->addr[4], mac->addr[5]);
 
 	/* Connecting to the configured connectivity layer.
 	 * Wi-Fi or LTE depending on the board that the sample was built for.

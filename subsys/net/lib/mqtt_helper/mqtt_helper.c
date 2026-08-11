@@ -15,7 +15,7 @@
 #include "mqtt-certs.h"
 #endif
 
-LOG_MODULE_REGISTER(mqtt_helper, CONFIG_MQTT_HELPER_LOG_LEVEL);
+LOG_MODULE_REGISTER(mqtt_helper, 4);//CONFIG_MQTT_HELPER_LOG_LEVEL);
 
 #if defined(CONFIG_MQTT_LIB_TLS)
 BUILD_ASSERT((CONFIG_MQTT_HELPER_SEC_TAG != -1), "Security tag must be configured");

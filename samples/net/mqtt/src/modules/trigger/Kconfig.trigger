@@ -12,7 +12,7 @@ config MQTT_SAMPLE_TRIGGER_THREAD_STACK_SIZE
 
 config MQTT_SAMPLE_TRIGGER_TIMEOUT_SECONDS
 	int "Trigger timer timeout"
-	default 60
+	default 4
 
 module = MQTT_SAMPLE_TRIGGER
 module-str = Trigger

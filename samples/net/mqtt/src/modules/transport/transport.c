@@ -231,6 +231,8 @@ static void connect_work_fn(struct k_work *work)
 		.device_id.size = strlen(client_id),
 	};
 
+	LOG_WRN("connect_work_fn, network status: %d", s_obj.status);
+
 	if (s_obj.status != NETWORK_CONNECTED) {
 		/* The network went down (e.g. a Wi-Fi roam to a different AP) some time
 		 * between this work being scheduled and it actually running. Dialing in
@@ -238,8 +240,8 @@ static void connect_work_fn(struct k_work *work)
 		 * attempt; disconnected_run()/connected_run() will reschedule us once a
 		 * fresh NETWORK_CONNECTED is observed.
 		 */
-		LOG_DBG("Network not connected, skipping MQTT connect attempt");
-		return;
+		LOG_ERR("Network not connected, skipping MQTT connect attempt");
+//		return;
 	}
 
 	err = client_id_get(client_id, sizeof(client_id));
@@ -275,6 +277,7 @@ static void disconnected_entry(void *o)
 	/* Reschedule a connection attempt if we are connected to network and we enter the
 	 * disconnected state.
 	 */
+	LOG_WRN("disconnected_entry, status: %d", user_object->status);
 	if (user_object->status == NETWORK_CONNECTED) {
 		k_work_reschedule_for_queue(&transport_queue, &connect_work, K_NO_WAIT);
 	}
@@ -285,6 +288,7 @@ static enum smf_state_result disconnected_run(void *o)
 {
 	struct s_object *user_object = o;
 
+	LOG_WRN("disconnected_run, status: %d, chan: %p/%p", user_object->status, user_object->chan, &NETWORK_CHAN);
 	if ((user_object->status == NETWORK_DISCONNECTED) && (user_object->chan == &NETWORK_CHAN)) {
 		/* If NETWORK_DISCONNECTED is received after the MQTT connection is closed,
 		 * we cancel the connect work if it is onging.
