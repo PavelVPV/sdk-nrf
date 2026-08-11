@@ -286,9 +286,10 @@ manifest:
       groups:
         - benchmark
     - name: hostap
+      remote: pavelvpv
       repo-path: sdk-hostap
       path: modules/lib/hostap
-      revision: dc22e8cf8dd03c8ff2bdde68002a4496525f6eb2
+      revision: debugging_net_samples
   # West-related configuration for the nrf repository.
   self:
     # This repository should be cloned to ncs/nrf.
