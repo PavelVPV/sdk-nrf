@@ -35,6 +35,10 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    # DNM: personal fork, used to pull in-progress debug logs for the
+    # TCP/nRF70 RX-drop investigation. Do not merge with this remote set.
+    - name: pavelvpv
+      url-base: https://github.com/pavelvpv
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -65,7 +69,11 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: 786079b8bbea17c295ceaeaad0de4fa56fdc9839
+      # DNM: pointed at pavelvpv/sdk-zephyr branch pv/tcp-nrf70-rx-debug-logs
+      # for the TCP/nRF70 RX-drop debug logging. Revert to the ncs remote
+      # and the pinned upstream revision before merging.
+      remote: pavelvpv
+      revision: pv/tcp-nrf70-rx-debug-logs
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
