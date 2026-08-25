@@ -20,6 +20,8 @@ manifest:
     # NCS repositories are hosted here.
     - name: ncs
       url-base: https://github.com/nrfconnect
+    - name: pavelvpv
+      url-base: https://github.com/PavelVPV
     # Third-party repository sources:
     - name: zephyrproject
       url-base: https://github.com/zephyrproject-rtos
@@ -64,8 +66,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: pavelvpv
       repo-path: sdk-zephyr
-      revision: ae65b089fcdd7b41d85ebd877b5df3b47f9a3846
+      revision: 123bab2572605fb67df69ffe7cfc851d48a4f977
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -264,9 +267,10 @@ manifest:
       groups:
         - benchmark
     - name: hostap
+      remote: pavelvpv
       repo-path: sdk-hostap
       path: modules/lib/hostap
-      revision: 09cf9bf998b9e70c2926203447f620c01d68a064
+      revision: 3c3504c1541727f05d38309dd222daba317013b1
   # West-related configuration for the nrf repository.
   self:
     # This repository should be cloned to ncs/nrf.
