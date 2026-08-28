@@ -68,7 +68,7 @@ manifest:
     - name: zephyr
       remote: pavelvpv
       repo-path: sdk-zephyr
-      revision: 123bab2572605fb67df69ffe7cfc851d48a4f977
+      revision: e14a56485b790266233641cc895b1080d459d656
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -267,10 +267,9 @@ manifest:
       groups:
         - benchmark
     - name: hostap
-      remote: pavelvpv
       repo-path: sdk-hostap
       path: modules/lib/hostap
-      revision: 3c3504c1541727f05d38309dd222daba317013b1
+      revision: 09cf9bf998b9e70c2926203447f620c01d68a064
   # West-related configuration for the nrf repository.
   self:
     # This repository should be cloned to ncs/nrf.
