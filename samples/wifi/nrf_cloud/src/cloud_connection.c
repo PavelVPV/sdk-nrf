@@ -583,8 +583,9 @@ static void check_credentials(void)
 		return;
 	}
 	/* Save power since credentials will not work. */
-	conn_mgr_all_if_down(true);
-	k_sleep(K_FOREVER);
+	printk("Here I should've down iface but I wont', ha-ha\n");
+//	conn_mgr_all_if_down(true);
+//	k_sleep(K_FOREVER);
 }
 
 void cloud_connection_thread_fn(void)

@@ -147,7 +147,7 @@ foreach(name IN LISTS patches)
       ${linker_dir}/wifi_${name}_patch.ld
       @ONLY
     )
-    zephyr_linker_sources(SECTIONS ${linker_dir}/wifi_${name}_patch.ld)
+    zephyr_linker_sources(ROM_SECTIONS ${linker_dir}/wifi_${name}_patch.ld)
   endif()
 endforeach()
 
