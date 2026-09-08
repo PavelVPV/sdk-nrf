@@ -21,6 +21,15 @@ target_sources(platform_s
   ${ZEPHYR_BASE}/soc/nordic/nrf71/wicr_setup.c
   )
 
+# SystemInit()'s FICR TRIMCNF loop blindly writes FICR-supplied (address, data)
+# pairs. On this engineering-silicon PDK, FICR is not reliably provisioned and
+# has produced at least one bogus target address, causing a HardFault before
+# any application code runs. Skip it until FICR provisioning is fixed.
+target_compile_definitions(platform_s
+  PUBLIC
+  NRF_DISABLE_FICR_TRIMCNF
+  )
+
 target_include_directories(platform_s
   PRIVATE
   ${ZEPHYR_BASE}/modules/cmsis/
