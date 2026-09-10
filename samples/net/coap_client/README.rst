@@ -6,7 +6,7 @@
 
    This sample demonstrates the communication between a public CoAP server and a CoAP client application that is running on a Nordic Semiconductor SoC that enables IP networking through cellular or Wi-Fi® connectivity.
 
-   .. |wifi| replace:: Wi-Fi
+   .. |wifi| replace:: Wi-Fi®
 
    .. include:: /includes/net_connection_manager.txt
 
