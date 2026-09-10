@@ -8,6 +8,7 @@
 #include <zephyr/kernel.h>
 #include <stdlib.h>
 #include <zephyr/net/socket.h>
+#include <zephyr/net/net_if.h>
 #include <zephyr/net/conn_mgr_monitor.h>
 #include <zephyr/net/conn_mgr_connectivity.h>
 #include <zephyr/net/tls_credentials.h>
@@ -21,6 +22,9 @@
 
 #if CONFIG_MODEM_KEY_MGMT
 #include <modem/modem_key_mgmt.h>
+#endif
+#if defined(CONFIG_NRF_MODEM_LIB)
+#include <nrf_modem_at.h>
 #endif
 
 #define HTTPS_PORT		"443"
@@ -189,6 +193,18 @@ static void l4_event_handler(struct net_mgmt_event_callback *cb,
 		printk("Network connectivity lost\n");
 		on_net_event_l4_disconnected();
 		break;
+	case NET_EVENT_IPV6_DAD_FAILED:
+		printk("IPv6 DAD failed\n");
+		break;
+	case NET_EVENT_IPV6_DAD_SUCCEED:
+		printk("IPv6 DAD succeed\n");
+		break;
+	case NET_EVENT_IPV6_ADDR_ADD:
+		printk("IPv6 address added\n");
+		break;
+	case NET_EVENT_IPV6_ADDR_DEL:
+		printk("IPv6 address deleted\n");
+		break;
 	default:
 		break;
 	}
@@ -204,14 +220,86 @@ static void connectivity_event_handler(struct net_mgmt_event_callback *cb,
 	}
 }
 
+static bool modem_has_addr(bool ipv6)
+{
+#if defined(CONFIG_NRF_MODEM_LIB)
+	char addr1[NET_IPV6_ADDR_LEN] = {0};
+	char addr2[NET_IPV6_ADDR_LEN] = {0};
+	char tmp[sizeof(struct net_in6_addr)];
+	int ret;
+
+	ret = nrf_modem_at_scanf("AT+CGPADDR=0",
+				 "+CGPADDR: %*d,\"%46[.:0-9A-F]\",\"%46[:0-9A-F]\"",
+				 addr1, addr2);
+	if (ret <= 0) {
+		return false;
+	}
+
+	if (!ipv6) {
+		return zsock_inet_pton(AF_INET, addr1, tmp) == 1;
+	}
+
+	return zsock_inet_pton(AF_INET6, addr1, tmp) == 1 ||
+	       zsock_inet_pton(AF_INET6, addr2, tmp) == 1;
+#else
+	ARG_UNUSED(ipv6);
+	return false;
+#endif
+}
+
+static bool ipv6_ready(void)
+{
+	if (IS_ENABLED(CONFIG_NRF_MODEM_LIB)) {
+		return modem_has_addr(true);
+	}
+
+	if (IS_ENABLED(CONFIG_NET_IPV6)) {
+		struct net_if *iface = NULL;
+
+		return net_if_ipv6_get_global_addr(NET_ADDR_PREFERRED, &iface) != NULL;
+	}
+
+	return false;
+}
+
+static bool ipv4_ready(void)
+{
+	if (IS_ENABLED(CONFIG_NRF_MODEM_LIB)) {
+		return modem_has_addr(false);
+	}
+
+	if (IS_ENABLED(CONFIG_NET_IPV4)) {
+		struct net_if *iface = net_if_get_default();
+
+		return (iface != NULL) &&
+		       (net_if_ipv4_get_global_addr(iface, NET_ADDR_PREFERRED) != NULL);
+	}
+
+	return false;
+}
+
+static bool addr_family_ready(int family)
+{
+	if (family == AF_INET6) {
+		return ipv6_ready();
+	}
+
+	if (family == AF_INET) {
+		return ipv4_ready();
+	}
+
+	return false;
+}
+
 static void send_http_request(void)
 {
 	int err;
-	int fd;
+	int fd = -1;
 	char *p;
 	int bytes;
 	size_t off;
 	struct addrinfo *res;
+	struct addrinfo *selected = NULL;
 	struct addrinfo hints = {
 		.ai_flags = AI_NUMERICSERV, /* Let getaddrinfo() set port */
 		.ai_socktype = SOCK_STREAM,
@@ -226,14 +314,76 @@ static void send_http_request(void)
 		return;
 	}
 
-	inet_ntop(res->ai_family, &((struct sockaddr_in *)(res->ai_addr))->sin_addr, peer_addr,
-		  INET6_ADDRSTRLEN);
-	printk("Resolved %s (%s)\n", peer_addr, net_family2str(res->ai_family));
+	const void *peer_addr_ptr = NULL;
+	uint16_t peer_port = 0U;
+
+	for (struct addrinfo *entry = res; entry != NULL; entry = entry->ai_next) {
+		char skipped_ip[INET6_ADDRSTRLEN] = "<unprintable>";
+		const void *skipped_addr_ptr = NULL;
+
+		if ((entry->ai_family != AF_INET) && (entry->ai_family != AF_INET6)) {
+			continue;
+		}
+
+		if (entry->ai_family == AF_INET6) {
+			skipped_addr_ptr =
+				&((const struct sockaddr_in6 *)entry->ai_addr)->sin6_addr;
+		} else {
+			skipped_addr_ptr =
+				&((const struct sockaddr_in *)entry->ai_addr)->sin_addr;
+		}
+
+		if (inet_ntop(entry->ai_family, skipped_addr_ptr, skipped_ip, sizeof(skipped_ip)) ==
+		    NULL) {
+			(void)snprintf(skipped_ip, sizeof(skipped_ip), "<inet_ntop err %d>", errno);
+		}
+
+		if (addr_family_ready(entry->ai_family)) {
+			selected = entry;
+			break;
+		}
+
+		printk("Skipping resolved %s address %s; local %s address not ready\n",
+		       entry->ai_family == AF_INET6 ? "IPv6" : "IPv4",
+		       skipped_ip,
+		       entry->ai_family == AF_INET6 ? "IPv6" : "IPv4");
+	}
+
+	if (selected == NULL) {
+		printk("No usable resolved IP address for %s\n", CONFIG_HTTPS_HOSTNAME);
+		goto clean_up;
+	}
+
+	switch (selected->ai_family) {
+	case AF_INET: {
+		const struct sockaddr_in *addr4 = (const struct sockaddr_in *)selected->ai_addr;
+
+		peer_addr_ptr = &addr4->sin_addr;
+		peer_port = ntohs(addr4->sin_port);
+		break;
+	}
+	case AF_INET6: {
+		const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)selected->ai_addr;
+
+		peer_addr_ptr = &addr6->sin6_addr;
+		peer_port = ntohs(addr6->sin6_port);
+		break;
+	}
+	default:
+		printk("Unsupported address family: %d\n", selected->ai_family);
+		goto clean_up;
+	}
+
+	if (!inet_ntop(selected->ai_family, peer_addr_ptr, peer_addr, sizeof(peer_addr))) {
+		printk("inet_ntop() failed, err %d\n", errno);
+		goto clean_up;
+	}
+	printk("Resolved %s (%s)\n", peer_addr, net_family2str(selected->ai_family));
 
 	if (IS_ENABLED(CONFIG_SAMPLE_TFM_MBEDTLS)) {
-		fd = socket(res->ai_family, SOCK_STREAM | SOCK_NATIVE_TLS, IPPROTO_TLS_1_2);
+		fd = socket(selected->ai_family, SOCK_STREAM | SOCK_NATIVE_TLS, IPPROTO_TLS_1_2);
 	} else {
-		fd = socket(res->ai_family, SOCK_STREAM, IPPROTO_TLS_1_2);
+		fd = socket(selected->ai_family, SOCK_STREAM, IPPROTO_TLS_1_2);
 	}
 	if (fd == -1) {
 		printk("Failed to open socket!\n");
@@ -246,9 +396,8 @@ static void send_http_request(void)
 		goto clean_up;
 	}
 
-	printk("Connecting to %s:%d\n", CONFIG_HTTPS_HOSTNAME,
-	       ntohs(((struct sockaddr_in *)(res->ai_addr))->sin_port));
-	err = connect(fd, res->ai_addr, res->ai_addrlen);
+	printk("Connecting to %s:%d\n", CONFIG_HTTPS_HOSTNAME, peer_port);
+	err = connect(fd, selected->ai_addr, selected->ai_addrlen);
 	if (err) {
 		printk("connect() failed, err: %d\n", errno);
 		goto clean_up;
@@ -297,7 +446,9 @@ static void send_http_request(void)
 
 clean_up:
 	freeaddrinfo(res);
-	(void)close(fd);
+	if (fd >= 0) {
+		(void)close(fd);
+	}
 }
 
 int main(void)
