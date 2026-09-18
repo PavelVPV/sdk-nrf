@@ -35,6 +35,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: pavelvpv
+      url-base: https://github.com/PavelVPV
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -65,7 +67,8 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: pull/4476/head
+      remote: pavelvpv
+      revision: nrf71_pdk_bringup_empty_rebase
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -150,11 +153,13 @@ manifest:
     - name: nrfxlib
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: pull/2283/head
+      remote: pavelvpv
+      revision: nrf71_pdk_bringup_empty_rebase
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
-      revision: pull/279/head
+      remote: pavelvpv
+      revision: nrf71_pdk_bringup_empty_rebase
     - name: psa-arch-tests
       repo-path: sdk-psa-arch-tests
       path: modules/tee/tf-m/psa-arch-tests
