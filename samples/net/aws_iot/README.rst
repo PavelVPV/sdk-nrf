@@ -150,7 +150,7 @@ The sample includes pre-configured configuration files for the development kits 
 * :file:`boards/thingy91_nrf9160_ns.conf` - Configuration file for the Thingy:91.
 * :file:`boards/nrf7002dk_nrf5340_cpuapp_ns.conf` - Configuration file for the nRF7002 DK.
 * :file:`boards/native_sim.conf` - Configuration file for the native simulator board.
-* :file:`boards/nrf7120dk_nrf7120_cpuapp_ns.conf` - Configuration file for the nRF7120 DK.
+* :file:`boards/nrf7120dk_nrf7120_cpuapp.conf` - Configuration file for the nRF7120 DK.
 
 The following configuration and DTS overlay files are included to host the MCUboot secondary image slot on external flash for the nRF7002 DK:
 
@@ -158,9 +158,11 @@ The following configuration and DTS overlay files are included to host the MCUbo
 * :file:`sysbuild/mcuboot/nrf7002dk_nrf5340_cpuapp.overlay` - DTS overlay file for the MCUboot image.
 * :file:`sysbuild/mcuboot/nrf7002dk_nrf5340_cpuapp.conf` - Configuration file for the MCUboot image.
 
-The following DTS overlay file is included to increase the non-secure RAM partition size to provide more memory for the application:
+The following files define matching internal MRAM partitions for the nRF7120 DK application and MCUboot images:
 
-* :file:`boards/nrf7120dk_nrf7120_cpuapp_ns.overlay` - DTS overlay file for the nRF7120 DK.
+* :file:`boards/nrf7120dk_nrf7120_cpuapp.overlay` - DTS overlay file for the application image.
+* :file:`sysbuild/mcuboot/boards/nrf7120dk_nrf7120_cpuapp.overlay` - DTS overlay file for the MCUboot image.
+* :file:`sysbuild/mcuboot/boards/nrf7120dk_nrf7120_cpuapp.conf` - Configuration file for the MCUboot image.
 
 Files that are located under the :file:`/boards` folder are automatically merged with the :file:`prj.conf` file when you build for the corresponding target.
 Files that are located under the :file:`/sysbuild/mcuboot` folder are used to configure the MCUboot image.
