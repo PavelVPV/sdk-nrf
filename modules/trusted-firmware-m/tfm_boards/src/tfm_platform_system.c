@@ -18,6 +18,9 @@
 
 #include <hal/nrf_gpio.h>
 #include <hal/nrf_regulators.h>
+#if defined(NRF71_SERIES)
+#include <hal/nrf_ctrlap.h>
+#endif
 #include <helpers/nrfx_ram_ctrl.h>
 
 #include "handle_attr.h"
@@ -28,8 +31,19 @@
 
 void tfm_platform_hal_system_reset(void)
 {
+#if defined(NRF71_SERIES)
+	/* Reset the Wi-Fi core together with the application core. */
+	__DSB();
+	__ISB();
+	nrf_ctrlap_reset_trigger(NRF_CTRLAP, NRF_CTRLAP_RESET_HARD);
+
+	while (1) {
+		/* Reset will terminate execution here. */
+	}
+#else
 	/* Reset the system */
 	NVIC_SystemReset();
+#endif
 }
 
 #if TFM_NRF_SYSTEM_OFF_SERVICE
