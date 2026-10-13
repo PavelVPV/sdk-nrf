@@ -181,6 +181,16 @@ if(TFM_CPU_FREQ_MHZ)
   target_compile_definitions(platform_s PUBLIC NRF_CONFIG_CPU_FREQ_MHZ=${TFM_CPU_FREQ_MHZ})
 endif()
 
+if(CONFIG_BOOTLOADER_MCUBOOT AND (NRF_SOC_VARIANT MATCHES "nrf7120"))
+  # MCUboot performs these MDK initialization steps before starting TF-M.
+  target_compile_definitions(platform_s PRIVATE
+    NRF_SKIP_CLOCK_CONFIGURATION
+    NRF_SKIP_TAMPC_SETUP
+    NRF_DISABLE_FICR_TRIMCNF
+    NRF_DONT_RESET_BOOTCOUNT
+  )
+endif()
+
 if(NOT DEFINED TFM_MCUBOOT_OFFSET)
   set(TFM_MCUBOOT_OFFSET 0)
 endif()
