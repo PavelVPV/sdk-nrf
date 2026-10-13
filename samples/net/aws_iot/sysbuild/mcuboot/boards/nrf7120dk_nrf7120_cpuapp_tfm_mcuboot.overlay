@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "../../../boards/nrf7120dk_nrf7120_cpuapp.overlay"
+#include "../../../boards/nrf7120dk_nrf7120_cpuapp_ns.overlay"
 
 / {
 	chosen {
