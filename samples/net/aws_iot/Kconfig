@@ -38,6 +38,9 @@ config AWS_IOT_SAMPLE_DEVICE_ID_USE_HW_ID
 	  Use the hardware ID as the device ID in the MQTT connection.
 	  The hardware ID source is selected by the HW_ID_LIBRARY_SOURCE choice.
 
+config AWS_FOTA_DOWNLOAD_SECURITY_TAG
+	default MQTT_HELPER_SEC_TAG
+
 module = AWS_IOT_SAMPLE
 module-str = AWS IoT sample
 source "$(ZEPHYR_BASE)/subsys/logging/Kconfig.template.log_config"
