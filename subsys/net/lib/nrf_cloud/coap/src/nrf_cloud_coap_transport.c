@@ -824,11 +824,10 @@ int nrf_cloud_coap_transport_init(struct nrf_cloud_coap_client *const client)
 	return err;
 }
 
-static int nrf_cloud_coap_connect_host_cb(struct sockaddr *const addr)
+static int nrf_cloud_coap_connect_host_cb(const struct net_sockaddr *addr, net_socklen_t addrlen)
 {
 	int err = 0;
 	int sock;
-	size_t addr_size;
 
 	LOG_DBG("Creating socket type IPPROTO_DTLS_1_2");
 	sock = zsock_socket(addr->sa_family, SOCK_DGRAM, IPPROTO_DTLS_1_2);
@@ -848,12 +847,7 @@ static int nrf_cloud_coap_connect_host_cb(struct sockaddr *const addr)
 		goto out;
 	}
 
-	addr_size = sizeof(struct sockaddr_in6);
-	if (addr->sa_family == AF_INET) {
-		addr_size = sizeof(struct sockaddr_in);
-	}
-
-	err = zsock_connect(sock, addr, addr_size);
+	err = zsock_connect(sock, addr, addrlen);
 	if (err) {
 		LOG_WRN("DTLS connect failed, errno: %d", errno);
 		err = -ECONNREFUSED;
@@ -892,17 +886,15 @@ int nrf_cloud_coap_transport_connect(struct nrf_cloud_coap_client *const client)
 
 	client->authenticated = false;
 
-	const char *const host_name = CONFIG_NRF_CLOUD_COAP_SERVER_HOSTNAME;
-	uint16_t port = CONFIG_NRF_CLOUD_COAP_SERVER_PORT;
+	struct connect_by_name host =
+		NRF_CLOUD_CONNECT_BY_NAME_INIT(CONFIG_NRF_CLOUD_COAP_SERVER_HOSTNAME,
+					       CONFIG_NRF_CLOUD_COAP_SERVER_PORT, NET_SOCK_DGRAM);
 
-	struct zsock_addrinfo hints = {
-		.ai_socktype = SOCK_DGRAM
-	};
-	sock = nrf_cloud_connect_host(host_name, port, &hints, &nrf_cloud_coap_connect_host_cb);
+	sock = nrf_cloud_connect_host(&host, nrf_cloud_coap_connect_host_cb);
 
 	if (sock < 0) {
 		LOG_ERR("Could not connect to nRF Cloud CoAP server %s, port: %d. err: %d",
-			host_name, port, sock);
+			host.host, host.port, sock);
 		nrf_cloud_coap_transport_disconnect(client);
 		return sock;
 	}

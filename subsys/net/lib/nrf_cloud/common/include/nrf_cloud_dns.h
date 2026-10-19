@@ -11,6 +11,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
+#include <net/connect_by_name.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,41 +22,34 @@ extern "C" {
 /** @brief Callback called for every address tried by nrf_cloud_connect_host.
  * Should return either a valid socket, or a negative error code.
  */
-typedef int (*nrf_cloud_connect_host_cb)(struct sockaddr *const addr);
+typedef int (*nrf_cloud_connect_host_cb)(const struct net_sockaddr *addr, net_socklen_t addrlen);
 
 /**
- * @brief Repeatedly use getaddrinfo to try first IPv6, then IPv4 addresses for a given hostname.
- * Calls the provided callback for each address found.
- * The callback should attempt to connect a socket to the provided address, and return either
- * the successfully-connected socket, or a negative error code.
+ * @brief Initialize a connect_by_name context for an nRF Cloud host.
+ *
+ * If a static IPv4 address is configured, it replaces the host name and DNS is not used.
+ * Otherwise, IPv6 is used if enabled for nRF Cloud, and any family if not.
  */
+#if defined(CONFIG_NRF_CLOUD_STATIC_IPV4)
+#define NRF_CLOUD_CONNECT_BY_NAME_INIT(_host, _port, _socktype)				\
+	CONNECT_BY_NAME_INIT(CONFIG_NRF_CLOUD_STATIC_IPV4_ADDR, _port, _socktype, NET_AF_INET)
+#else
+#define NRF_CLOUD_CONNECT_BY_NAME_INIT(_host, _port, _socktype)				\
+	CONNECT_BY_NAME_INIT(_host, _port, _socktype,					\
+			     IS_ENABLED(CONFIG_NRF_CLOUD_IPV6) ? NET_AF_INET6 : NET_AF_UNSPEC)
+#endif
 
 /**
- * @brief Attempt to connect to a provided nRF Cloud hostname.
+ * @brief Attempt to connect to an nRF Cloud host.
  *
- * This function performs DNS lookup of the provided hostname, then tries to connect to each
- * address found, until successful.
+ * Calls @p connect_cb for each address of the host, see @ref connect_by_name_next. Does not
+ * wait for the network.
  *
- * If a static IPv4 address is configured, this will be attempted first. Then, IPv6 addresses will
- * be searched for and tried. Finally, IPv4 addresses will be searched for and tried.
- *
- * The provided connect callback is called for each IP address tried. This callback should attempt
- * to connect to the provided IP address, and either return a negative error code on failure, or a
- * nonnegative socket ID on success.
- *
- * This function will return either a negative error code if all found IP addresses fail, or the
- * socket ID of the first successful connection.
- *
- * @param host_name The nRF Cloud hostname to attempt to connect to.
- * @param port The port to attempt to connect to.
- * @param hints Additional hints to pass to getaddrinfo.
- *		The ai_family property will be overwritten.
- * @param connect_cb A callback which, when provided with an IP address, should attempt to connect
- *		     to it, and return either a negative error code on failure, or the nonnegative
- *		     socket ID of the successful connection.
+ * @param ctx Context, see @ref NRF_CLOUD_CONNECT_BY_NAME_INIT.
+ * @param connect_cb Callback that connects a socket to the address.
  * @return int Either a negative error code on failure, or a nonnegative socket ID on success.
  */
-int nrf_cloud_connect_host(const char *host_name, uint16_t port, struct zsock_addrinfo *hints,
+int nrf_cloud_connect_host(const struct connect_by_name *ctx,
 			   nrf_cloud_connect_host_cb connect_cb);
 
 /** @endcond */
