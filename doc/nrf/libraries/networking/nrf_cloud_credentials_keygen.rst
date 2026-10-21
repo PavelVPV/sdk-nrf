@@ -16,6 +16,10 @@ Overview
 The private key is generated using the :ref:`PSA Crypto API <ug_psa_certified_api_overview_crypto>` as a persistent, non-exportable ECC P-256 key, stored using the :ref:`Secure Storage <secure_storage_in_ncs>`.
 The key is referenced for TLS by its PSA key ID through the ``TLS_CREDENTIAL_PRIVATE_KEY_PSA`` credential type, so the private key is never exported to the application or written to the TLS credentials store as raw key material.
 
+The key generation is implemented by the :ref:`TLS credentials <zephyr:sockets_tls_credentials_subsys>` library (:kconfig:option:`CONFIG_TLS_CREDENTIALS_KEYGEN`), which the nRF Cloud library selects.
+Other libraries, such as :ref:`lib_mqtt_helper`, use it as well.
+The ``cred key`` shell commands of the TLS credentials shell do the same as the ``nrf_cloud_cred`` commands, but require the CSR subject.
+
 A typical provisioning flow is as follows:
 
 1. If you do not already have one, create your own CA certificate and key (for example, using the :file:`create_ca_cert.py` script from nRF Cloud Utils) to sign your device certificates.

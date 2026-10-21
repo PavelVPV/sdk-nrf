@@ -331,6 +331,66 @@ The following are the ways to generate and register device certificates:
 
          |serial_port_sec_tag|
 
+   .. tab:: nRF70 and nRF54L: Device generated private key
+
+      .. note::
+         Generating a key pair on the device with this method is experimental.
+         The device generates the key pair with the PSA Crypto API and stores it in secure storage as a non-exportable key, so the private key never leaves the device.
+
+      Complete the following steps to generate a key pair and CSR on the device, which is then signed using your CA and uploaded to Azure:
+
+      1. Build and program the :ref:`azure_iot_hub` sample with the :file:`keygen.conf` configuration file in addition to the :file:`wifi.conf` file.
+         This enables the :kconfig:option:`CONFIG_TLS_CREDENTIALS_KEYGEN` and :kconfig:option:`CONFIG_TLS_CREDENTIALS_SHELL` Kconfig options, PEM parsing, and a larger credential buffer for the certificates that you install.
+         Do not place a :file:`private-key.pem` file in the :file:`certs/` folder.
+
+      #. Select the device ID.
+         The common name (CN) of the certificate must be the same as the device ID that the sample uses when it connects, or the registration ID when you use DPS.
+         See :ref:`dps_config` for the options.
+         The sample prints the device ID in its log.
+
+      #. Generate a key pair and obtain a CSR using the following command:
+
+         .. code-block:: console
+
+            nrfcredstore <serial port> --cmd-type tls-shell generate <sec tag> certs/client-csr.der --attributes "CN=<device id>"
+
+         |serial_port_sec_tag|
+         The sec tag must match the :kconfig:option:`CONFIG_MQTT_HELPER_SEC_TAG` Kconfig option.
+
+      #. Convert the CSR from DER format to PEM format using the following command:
+
+         .. code-block:: console
+
+            openssl req -inform DER -in certs/client-csr.der -outform PEM -out certs/client-csr.pem
+
+      #. Sign the CSR using the subordinate CA certificate using the following command:
+
+         .. code-block:: console
+
+            cert_tool.py sign
+
+         .. note::
+            This process might vary depending on the CA you are using.
+            See the documentation for your CA for more information on how to sign a CSR.
+
+      #. Combine the device certificate and the subordinate CA certificate chain into a single file using the following command:
+
+         .. code-block:: console
+
+            cat certs/client-cert.pem ca/sub-ca-cert.pem > certs/client-cert-chain.pem
+
+         This is necessary for Azure to verify the certificate chain.
+
+      #. Provision the certificate using the following command:
+
+         .. code-block:: console
+
+            nrfcredstore <serial port> --cmd-type tls-shell write <sec tag> CLIENT_CERT certs/client-cert-chain.pem
+
+      The :ref:`lib_mqtt_helper` library registers the key with the TLS credentials module every time it connects.
+      To generate a new key pair, first delete the existing one with the ``nrfcredstore <serial port> --cmd-type tls-shell delete <sec tag> CLIENT_KEY`` command.
+      Then, the previously issued device certificate no longer matches the key.
+
    .. tab:: nRF91: Script generated private key
 
       .. caution::
@@ -500,6 +560,14 @@ To provision the certificates, use any of the following methods, depending on th
    .. tab:: nRF91: nRF connect for Desktop
 
       .. include:: /includes/cert-flashing.txt
+
+   .. tab:: nRF70 and nRF54L: root CA at runtime
+
+         When the private key is generated on the device, provision the root CA certificate with the following command:
+
+         .. code-block:: console
+
+            nrfcredstore <serial port> --cmd-type tls-shell write <sec tag> ROOT_CA_CERT DigiCertGlobalRootG2.crt.pem
 
    .. tab:: nRF70: runtime provisioning
 
