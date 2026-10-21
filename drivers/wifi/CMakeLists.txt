@@ -5,4 +5,5 @@
 #
 
 add_subdirectory_ifdef(CONFIG_WIFI_NRF71 nrf71)
+add_subdirectory_ifdef(CONFIG_WIFI_NRF71_SIM nrf71_sim)
 add_subdirectory_ifdef(CONFIG_WIFI_NRF92 nrf92)

@@ -1,0 +1,19 @@
+# Copyright (c) 2026 Nordic Semiconductor ASA
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+config WIFI_NRF71_SIM
+	bool "Simulated nRF71 UMAC for native_sim"
+	default y
+	depends on DT_HAS_NORDIC_NRF71_SIM_IPC_ENABLED
+	depends on ARCH_POSIX
+	help
+	  IPC service backend and UMAC model that let the nRF71 Wi-Fi
+	  driver run on native_sim without hardware.
+
+if WIFI_NRF71_SIM
+
+module = WIFI_NRF71_SIM
+module-str = nRF71 UMAC simulator
+source "subsys/logging/Kconfig.template.log_config"
+
+endif
