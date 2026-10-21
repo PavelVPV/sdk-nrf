@@ -1,0 +1,39 @@
+/*
+ * Copyright (c) 2026 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/ {
+	/* Only referenced at build time. MAC comes from CONFIG_WIFI_FIXED_MAC_ADDRESS. */
+	ficr: ficr@ffc000 {
+		compatible = "nordic,nrf-ficr";
+		reg = <0xffc000 0x1000>;
+		#nordic,ficr-cells = <1>;
+		status = "okay";
+	};
+
+	ipc0: ipc0 {
+		compatible = "nordic,nrf71-sim-ipc";
+		status = "okay";
+	};
+
+	wifi: wifi {
+		compatible = "nordic,nrf7120-wifi";
+		status = "okay";
+
+		wifi-max-tx-pwr-2g-dsss = <21>;
+		wifi-max-tx-pwr-2g-mcs0 = <16>;
+		wifi-max-tx-pwr-2g-mcs7 = <16>;
+		wifi-max-tx-pwr-5g-low-mcs0 = <13>;
+		wifi-max-tx-pwr-5g-low-mcs7 = <13>;
+		wifi-max-tx-pwr-5g-mid-mcs0 = <13>;
+		wifi-max-tx-pwr-5g-mid-mcs7 = <13>;
+		wifi-max-tx-pwr-5g-high-mcs0 = <12>;
+		wifi-max-tx-pwr-5g-high-mcs7 = <12>;
+
+		wlan0: wlan0 {
+			compatible = "nordic,wlan";
+		};
+	};
+};
