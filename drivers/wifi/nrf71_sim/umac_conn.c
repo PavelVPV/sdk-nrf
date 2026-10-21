@@ -110,6 +110,47 @@ void umac_conn_cmd(const struct nrf_wifi_umac_hdr *hdr, size_t len)
 		LOG_INF("DEAUTHENTICATE reason %u: %d", d->reason_code, ret);
 		break;
 	}
+	case NRF_WIFI_UMAC_CMD_NEW_KEY:
+	case NRF_WIFI_UMAC_CMD_DEL_KEY: {
+		const struct nrf_wifi_umac_cmd_key *k = (const void *)hdr;
+		const struct nrf_wifi_umac_key_info *ki = &k->key_info;
+		const uint8_t *mac = (k->valid_fields & NRF_WIFI_CMD_KEY_MAC_ADDR_VALID) ?
+				     k->mac_addr : NULL;
+
+		if (!umac_sim_host_ready) {
+			break;
+		}
+		if (hdr->cmd_evnt == NRF_WIFI_UMAC_CMD_DEL_KEY) {
+			/* Keys are often deleted when none is set. Errors do not matter. */
+			(void)nsim_wifi_key_del(mac, ki->key_idx);
+			ret = 0;
+			break;
+		}
+		ret = nsim_wifi_key_new(mac, ki->key_idx, ki->cipher_suite,
+					ki->key.nrf_wifi_key, ki->key.nrf_wifi_key_len,
+					ki->seq.nrf_wifi_seq,
+					(ki->valid_fields & NRF_WIFI_SEQ_VALID) ?
+					ki->seq.nrf_wifi_seq_len : 0);
+		LOG_INF("NEW_KEY %s idx %u cipher 0x%08x len %u: %d", mac ? "pairwise" : "group",
+			ki->key_idx, ki->cipher_suite, ki->key.nrf_wifi_key_len, ret);
+		break;
+	}
+	case NRF_WIFI_UMAC_CMD_SET_KEY: {
+		const struct nrf_wifi_umac_key_info *ki =
+			&((const struct nrf_wifi_umac_cmd_set_key *)hdr)->key_info;
+
+		if (umac_sim_host_ready) {
+			uint16_t flags = ki->nrf_wifi_flags;
+			int uc = !!(flags & NRF_WIFI_KEY_DEFAULT_TYPE_UNICAST);
+			int mc = !!(flags & NRF_WIFI_KEY_DEFAULT_TYPE_MULTICAST);
+
+			ret = nsim_wifi_key_default(ki->key_idx, uc, mc);
+		}
+		LOG_INF("SET_KEY idx %u flags 0x%x: %d", ki->key_idx, ki->nrf_wifi_flags, ret);
+		/* mac80211 sets the default pairwise key by itself and may refuse this. */
+		ret = 0;
+		break;
+	}
 	default:
 		break;
 	}

@@ -319,6 +319,79 @@ int nsim_wifi_deauth(const uint8_t *bssid, uint16_t reason)
 	return nl_transact(&m, NULL, NULL);
 }
 
+int nsim_wifi_key_new(const uint8_t *mac, int idx, uint32_t cipher, const uint8_t *key,
+		      int key_len, const uint8_t *seq, int seq_len)
+{
+	struct nl_msg m;
+	uint8_t key_idx = idx;
+
+	msg_init(&m, family_id, 0, NL80211_CMD_NEW_KEY);
+	attr_put_u32(&m, NL80211_ATTR_IFINDEX, ifindex);
+	attr_put(&m, NL80211_ATTR_KEY_DATA, key, key_len);
+	attr_put(&m, NL80211_ATTR_KEY_IDX, &key_idx, sizeof(key_idx));
+	attr_put_u32(&m, NL80211_ATTR_KEY_CIPHER, cipher);
+	if (seq_len > 0) {
+		attr_put(&m, NL80211_ATTR_KEY_SEQ, seq, seq_len);
+	}
+	if (mac) {
+		attr_put(&m, NL80211_ATTR_MAC, mac, 6);
+		attr_put_u32(&m, NL80211_ATTR_KEY_TYPE, NL80211_KEYTYPE_PAIRWISE);
+	} else {
+		attr_put_u32(&m, NL80211_ATTR_KEY_TYPE, NL80211_KEYTYPE_GROUP);
+	}
+
+	return nl_transact(&m, NULL, NULL);
+}
+
+int nsim_wifi_key_default(int idx, int unicast, int multicast)
+{
+	struct nl_msg m;
+	uint8_t key_idx = idx;
+	uint8_t nest[2 * NLA_HDRLEN];
+	int nest_len = 0;
+
+	msg_init(&m, family_id, 0, NL80211_CMD_SET_KEY);
+	attr_put_u32(&m, NL80211_ATTR_IFINDEX, ifindex);
+	attr_put(&m, NL80211_ATTR_KEY_IDX, &key_idx, sizeof(key_idx));
+	attr_put(&m, NL80211_ATTR_KEY_DEFAULT, NULL, 0);
+
+	/* Nested flags in NL80211_ATTR_KEY_DEFAULT_TYPES. */
+	if (unicast) {
+		struct nlattr *a = (struct nlattr *)&nest[nest_len];
+
+		a->nla_type = NL80211_KEY_DEFAULT_TYPE_UNICAST;
+		a->nla_len = NLA_HDRLEN;
+		nest_len += NLA_HDRLEN;
+	}
+	if (multicast) {
+		struct nlattr *a = (struct nlattr *)&nest[nest_len];
+
+		a->nla_type = NL80211_KEY_DEFAULT_TYPE_MULTICAST;
+		a->nla_len = NLA_HDRLEN;
+		nest_len += NLA_HDRLEN;
+	}
+	if (nest_len) {
+		attr_put(&m, NL80211_ATTR_KEY_DEFAULT_TYPES, nest, nest_len);
+	}
+
+	return nl_transact(&m, NULL, NULL);
+}
+
+int nsim_wifi_key_del(const uint8_t *mac, int idx)
+{
+	struct nl_msg m;
+	uint8_t key_idx = idx;
+
+	msg_init(&m, family_id, 0, NL80211_CMD_DEL_KEY);
+	attr_put_u32(&m, NL80211_ATTR_IFINDEX, ifindex);
+	attr_put(&m, NL80211_ATTR_KEY_IDX, &key_idx, sizeof(key_idx));
+	if (mac) {
+		attr_put(&m, NL80211_ATTR_MAC, mac, 6);
+	}
+
+	return nl_transact(&m, NULL, NULL);
+}
+
 int nsim_wifi_pkt_send(const uint8_t *frame, int len)
 {
 	return send(pkt_sock, frame, len, 0) < 0 ? -errno : 0;

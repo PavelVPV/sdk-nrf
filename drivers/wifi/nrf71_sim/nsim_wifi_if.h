@@ -56,6 +56,12 @@ int nsim_wifi_assoc(const uint8_t *bssid, uint32_t freq, const uint8_t *ssid, in
 		    const uint8_t *ie, int ie_len);
 int nsim_wifi_deauth(const uint8_t *bssid, uint16_t reason);
 
+/* Keys. mac = peer for a pairwise key, NULL for a group key. cipher is the IEEE suite. */
+int nsim_wifi_key_new(const uint8_t *mac, int idx, uint32_t cipher, const uint8_t *key,
+		      int key_len, const uint8_t *seq, int seq_len);
+int nsim_wifi_key_default(int idx, int unicast, int multicast);
+int nsim_wifi_key_del(const uint8_t *mac, int idx);
+
 /* Ethernet frames on the STA interface. recv is non-blocking, returns 0 if none. */
 int nsim_wifi_pkt_send(const uint8_t *frame, int len);
 int nsim_wifi_pkt_recv(uint8_t *frame, int max);

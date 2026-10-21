@@ -141,6 +141,9 @@ static void umac_msg_handle(const struct host_rpu_msg *msg, size_t len)
 	case NRF_WIFI_UMAC_CMD_AUTHENTICATE:
 	case NRF_WIFI_UMAC_CMD_ASSOCIATE:
 	case NRF_WIFI_UMAC_CMD_DEAUTHENTICATE:
+	case NRF_WIFI_UMAC_CMD_NEW_KEY:
+	case NRF_WIFI_UMAC_CMD_SET_KEY:
+	case NRF_WIFI_UMAC_CMD_DEL_KEY:
 		umac_conn_cmd(hdr, len);
 		break;
 	default:
