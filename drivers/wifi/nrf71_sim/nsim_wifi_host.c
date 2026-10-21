@@ -271,40 +271,48 @@ int nsim_wifi_open(const char *ifname)
 	return pkt_sock < 0 ? -EPERM : 0;
 }
 
-static int mlme_req(int cmd, const uint8_t *bssid, uint32_t freq, const uint8_t *ssid,
-		    int ssid_len, const uint8_t *ie, int ie_len)
+static void mlme_req_init(struct nl_msg *m, int cmd, const uint8_t *bssid, uint32_t freq,
+			  const uint8_t *ssid, int ssid_len, const uint8_t *ie, int ie_len)
+{
+	msg_init(m, family_id, 0, cmd);
+	attr_put_u32(m, NL80211_ATTR_IFINDEX, ifindex);
+	attr_put(m, NL80211_ATTR_MAC, bssid, 6);
+	attr_put_u32(m, NL80211_ATTR_WIPHY_FREQ, freq);
+	attr_put(m, NL80211_ATTR_SSID, ssid, ssid_len);
+	if (ie_len > 0) {
+		attr_put(m, NL80211_ATTR_IE, ie, ie_len);
+	}
+}
+
+int nsim_wifi_auth(const uint8_t *bssid, uint32_t freq, const uint8_t *ssid, int ssid_len,
+		   const uint8_t *ie, int ie_len, int auth_type, const uint8_t *auth_data,
+		   int auth_data_len)
 {
 	struct nl_msg m;
 
-	msg_init(&m, family_id, 0, cmd);
-	attr_put_u32(&m, NL80211_ATTR_IFINDEX, ifindex);
-	attr_put(&m, NL80211_ATTR_MAC, bssid, 6);
-	attr_put_u32(&m, NL80211_ATTR_WIPHY_FREQ, freq);
-	attr_put(&m, NL80211_ATTR_SSID, ssid, ssid_len);
-	if (cmd == NL80211_CMD_AUTHENTICATE) {
-		attr_put_u32(&m, NL80211_ATTR_AUTH_TYPE, NL80211_AUTHTYPE_OPEN_SYSTEM);
-	}
-	if (ie_len > 0) {
-		attr_put(&m, NL80211_ATTR_IE, ie, ie_len);
-	}
-	if (cmd == NL80211_CMD_ASSOCIATE) {
-		/* Kernel drops the link when zephyr.exe exits. */
-		attr_put(&m, NL80211_ATTR_SOCKET_OWNER, NULL, 0);
+	mlme_req_init(&m, NL80211_CMD_AUTHENTICATE, bssid, freq, ssid, ssid_len, ie, ie_len);
+	attr_put_u32(&m, NL80211_ATTR_AUTH_TYPE, auth_type == NSIM_WIFI_AUTH_SAE ?
+		     NL80211_AUTHTYPE_SAE : NL80211_AUTHTYPE_OPEN_SYSTEM);
+	if (auth_data_len > 0) {
+		attr_put(&m, NL80211_ATTR_AUTH_DATA, auth_data, auth_data_len);
 	}
 
 	return nl_transact(&m, NULL, NULL);
 }
 
-int nsim_wifi_auth(const uint8_t *bssid, uint32_t freq, const uint8_t *ssid, int ssid_len,
-		   const uint8_t *ie, int ie_len)
-{
-	return mlme_req(NL80211_CMD_AUTHENTICATE, bssid, freq, ssid, ssid_len, ie, ie_len);
-}
-
 int nsim_wifi_assoc(const uint8_t *bssid, uint32_t freq, const uint8_t *ssid, int ssid_len,
-		    const uint8_t *ie, int ie_len)
+		    const uint8_t *ie, int ie_len, int mfp_required)
 {
-	return mlme_req(NL80211_CMD_ASSOCIATE, bssid, freq, ssid, ssid_len, ie, ie_len);
+	struct nl_msg m;
+
+	mlme_req_init(&m, NL80211_CMD_ASSOCIATE, bssid, freq, ssid, ssid_len, ie, ie_len);
+	if (mfp_required) {
+		attr_put_u32(&m, NL80211_ATTR_USE_MFP, NL80211_MFP_REQUIRED);
+	}
+	/* Kernel drops the link when zephyr.exe exits. */
+	attr_put(&m, NL80211_ATTR_SOCKET_OWNER, NULL, 0);
+
+	return nl_transact(&m, NULL, NULL);
 }
 
 int nsim_wifi_deauth(const uint8_t *bssid, uint16_t reason)
@@ -413,7 +421,7 @@ int nsim_wifi_key_new(const uint8_t *mac, int idx, uint32_t cipher, const uint8_
 	return nl_transact(&m, NULL, NULL);
 }
 
-int nsim_wifi_key_default(int idx, int unicast, int multicast)
+int nsim_wifi_key_default(int idx, int mgmt, int unicast, int multicast)
 {
 	struct nl_msg m;
 	uint8_t key_idx = idx;
@@ -423,7 +431,7 @@ int nsim_wifi_key_default(int idx, int unicast, int multicast)
 	msg_init(&m, family_id, 0, NL80211_CMD_SET_KEY);
 	attr_put_u32(&m, NL80211_ATTR_IFINDEX, ifindex);
 	attr_put(&m, NL80211_ATTR_KEY_IDX, &key_idx, sizeof(key_idx));
-	attr_put(&m, NL80211_ATTR_KEY_DEFAULT, NULL, 0);
+	attr_put(&m, mgmt ? NL80211_ATTR_KEY_DEFAULT_MGMT : NL80211_ATTR_KEY_DEFAULT, NULL, 0);
 
 	/* Nested flags in NL80211_ATTR_KEY_DEFAULT_TYPES. */
 	if (unicast) {

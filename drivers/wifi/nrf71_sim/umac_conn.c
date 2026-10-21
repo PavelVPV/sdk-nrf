@@ -146,15 +146,20 @@ void umac_conn_cmd(const struct nrf_wifi_umac_hdr *hdr, size_t len)
 
 		memcpy(conn.bssid, a->nrf_wifi_bssid, sizeof(conn.bssid));
 		conn.freq = a->frequency;
+		bool sae = (a->auth_type == NRF_WIFI_AUTHTYPE_SAE);
+		int sae_len = sae ? MIN(a->sae.sae_data_len, NRF_WIFI_MAX_SAE_DATA_LENGTH) : 0;
+
 		if (umac_sim_host_ready) {
 			ret = nsim_wifi_auth(a->nrf_wifi_bssid, a->frequency, a->ssid.nrf_wifi_ssid,
 					     a->ssid.nrf_wifi_ssid_len, (const uint8_t *)a->ie.ie,
-					     a->ie.ie_len);
+					     a->ie.ie_len,
+					     sae ? NSIM_WIFI_AUTH_SAE : NSIM_WIFI_AUTH_OPEN,
+					     a->sae.sae_data, sae_len);
 		}
-		LOG_INF("AUTHENTICATE %02x:%02x:%02x:%02x:%02x:%02x freq %u: %d",
+		LOG_INF("AUTHENTICATE %02x:%02x:%02x:%02x:%02x:%02x freq %u %s: %d",
 			a->nrf_wifi_bssid[0], a->nrf_wifi_bssid[1], a->nrf_wifi_bssid[2],
 			a->nrf_wifi_bssid[3], a->nrf_wifi_bssid[4], a->nrf_wifi_bssid[5],
-			a->frequency, ret);
+			a->frequency, sae ? "SAE" : "open", ret);
 		break;
 	}
 	case NRF_WIFI_UMAC_CMD_ASSOCIATE: {
@@ -166,9 +171,10 @@ void umac_conn_cmd(const struct nrf_wifi_umac_hdr *hdr, size_t len)
 		if (umac_sim_host_ready) {
 			ret = nsim_wifi_assoc(c->mac_addr, c->frequency, c->ssid.nrf_wifi_ssid,
 					      c->ssid.nrf_wifi_ssid_len, conn.req_ie,
-					      conn.req_ie_len);
+					      conn.req_ie_len, c->use_mfp == NRF_WIFI_MFP_REQUIRED);
 		}
-		LOG_INF("ASSOCIATE freq %u ie_len %u: %d", c->frequency, conn.req_ie_len, ret);
+		LOG_INF("ASSOCIATE freq %u ie_len %u mfp %d: %d", c->frequency, conn.req_ie_len,
+			c->use_mfp, ret);
 		break;
 	}
 	case NRF_WIFI_UMAC_CMD_DEAUTHENTICATE: {
@@ -213,10 +219,11 @@ void umac_conn_cmd(const struct nrf_wifi_umac_hdr *hdr, size_t len)
 
 		if (umac_sim_host_ready) {
 			uint16_t flags = ki->nrf_wifi_flags;
+			int mgmt = !!(flags & NRF_WIFI_KEY_DEFAULT_MGMT);
 			int uc = !!(flags & NRF_WIFI_KEY_DEFAULT_TYPE_UNICAST);
 			int mc = !!(flags & NRF_WIFI_KEY_DEFAULT_TYPE_MULTICAST);
 
-			ret = nsim_wifi_key_default(ki->key_idx, uc, mc);
+			ret = nsim_wifi_key_default(ki->key_idx, mgmt, uc, mc);
 		}
 		LOG_INF("SET_KEY idx %u flags 0x%x: %d", ki->key_idx, ki->nrf_wifi_flags, ret);
 		/* mac80211 sets the default pairwise key by itself and may refuse this. */

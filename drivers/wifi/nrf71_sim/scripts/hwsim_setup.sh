@@ -4,7 +4,8 @@
 #
 # Set up a test AP on mac80211_hwsim for the nRF71 UMAC simulator.
 # Usage: sudo hwsim_setup.sh up|down
-# radio0 = APs in netns nrf71sim: nrf71-sim (open) and nrf71-sim-wpa2 (WPA2-PSK), bridged in
+# radio0 = APs in netns nrf71sim: nrf71-sim (open), nrf71-sim-wpa2 (WPA2-PSK) and
+# nrf71-sim-wpa3 (WPA3-SAE), bridged in
 # br0 with hostapd + dnsmasq on 192.168.71.1. radio1 = STA used by
 # zephyr.exe. The netns keeps the AP away from the host firewall and IP stack.
 # Run servers for the sample with: sudo ip netns exec nrf71sim <cmd>

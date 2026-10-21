@@ -60,11 +60,17 @@ int nsim_wifi_scan_get(struct nsim_wifi_bss *bss, int max);
 /* Non-blocking. Returns enum nsim_wifi_evt. frame gets the MLME frame, if any. */
 int nsim_wifi_evt_poll(uint8_t *frame, int max, int *frame_len);
 
-/* MLME requests. Results come as events. */
+enum nsim_wifi_auth_type {
+	NSIM_WIFI_AUTH_OPEN,
+	NSIM_WIFI_AUTH_SAE,
+};
+
+/* MLME requests. Results come as events. auth_data is the SAE commit or confirm body. */
 int nsim_wifi_auth(const uint8_t *bssid, uint32_t freq, const uint8_t *ssid, int ssid_len,
-		   const uint8_t *ie, int ie_len);
+		   const uint8_t *ie, int ie_len, int auth_type, const uint8_t *auth_data,
+		   int auth_data_len);
 int nsim_wifi_assoc(const uint8_t *bssid, uint32_t freq, const uint8_t *ssid, int ssid_len,
-		    const uint8_t *ie, int ie_len);
+		    const uint8_t *ie, int ie_len, int mfp_required);
 int nsim_wifi_deauth(const uint8_t *bssid, uint16_t reason);
 
 /* Station info for the AP we are associated with. */
@@ -73,7 +79,7 @@ int nsim_wifi_sta_get(const uint8_t *bssid, struct nsim_wifi_sta *sta);
 /* Keys. mac = peer for a pairwise key, NULL for a group key. cipher is the IEEE suite. */
 int nsim_wifi_key_new(const uint8_t *mac, int idx, uint32_t cipher, const uint8_t *key,
 		      int key_len, const uint8_t *seq, int seq_len);
-int nsim_wifi_key_default(int idx, int unicast, int multicast);
+int nsim_wifi_key_default(int idx, int mgmt, int unicast, int multicast);
 int nsim_wifi_key_del(const uint8_t *mac, int idx);
 
 /* Ethernet frames on the STA interface. recv is non-blocking, returns 0 if none. */
