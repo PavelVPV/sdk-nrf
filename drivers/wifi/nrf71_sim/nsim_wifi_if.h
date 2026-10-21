@@ -26,6 +26,17 @@ struct nsim_wifi_bss {
 	uint8_t ies[NSIM_WIFI_MAX_IES];
 };
 
+struct nsim_wifi_sta {
+	int32_t signal_dbm;
+	uint32_t tx_bitrate;	/* 100 kbit/s units, 0 if unknown */
+	uint32_t rx_bytes;
+	uint32_t tx_bytes;
+	uint32_t rx_packets;
+	uint32_t tx_packets;
+	uint16_t beacon_int;
+	uint8_t dtim_period;
+};
+
 enum nsim_wifi_evt {
 	NSIM_WIFI_EVT_NONE,
 	NSIM_WIFI_EVT_SCAN_DONE,
@@ -55,6 +66,9 @@ int nsim_wifi_auth(const uint8_t *bssid, uint32_t freq, const uint8_t *ssid, int
 int nsim_wifi_assoc(const uint8_t *bssid, uint32_t freq, const uint8_t *ssid, int ssid_len,
 		    const uint8_t *ie, int ie_len);
 int nsim_wifi_deauth(const uint8_t *bssid, uint16_t reason);
+
+/* Station info for the AP we are associated with. */
+int nsim_wifi_sta_get(const uint8_t *bssid, struct nsim_wifi_sta *sta);
 
 /* Keys. mac = peer for a pairwise key, NULL for a group key. cipher is the IEEE suite. */
 int nsim_wifi_key_new(const uint8_t *mac, int idx, uint32_t cipher, const uint8_t *key,

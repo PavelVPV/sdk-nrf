@@ -18,6 +18,8 @@ LOG_MODULE_DECLARE(nrf71_sim, CONFIG_WIFI_NRF71_SIM_LOG_LEVEL);
 #define SNAP_LEN   8
 
 /* Host RX buffers given by CONFIG_RX_BUF, used as a FIFO. */
+int16_t umac_sim_rx_signal_mbm = -3000;
+
 static struct nrf_wifi_rx_buf rx_bufs[RX_BUF_MAX];
 static unsigned int rx_head;
 static unsigned int rx_cnt;
@@ -95,7 +97,7 @@ static void rx_send(const uint8_t *eth, int len)
 	evt.rx.umac_head.len = sizeof(evt) - sizeof(evt.msg);
 	evt.rx.rx_pkt_type = NRF_WIFI_RX_PKT_DATA;
 	evt.rx.rx_pkt_cnt = 1;
-	evt.rx.signal = -30;
+	evt.rx.signal = umac_sim_rx_signal_mbm;
 	evt.info.descriptor_id = buf->skb_desc_no;
 	evt.info.rx_pkt_len = ETH_HLEN + SNAP_LEN + payload;
 	evt.info.pkt_type = PKT_TYPE_MSDU;

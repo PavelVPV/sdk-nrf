@@ -61,9 +61,81 @@ static void link_down(void)
 	umac_data_carrier_send(conn.hdr.ids.wdev_id, false);
 }
 
+/* GET_STATION, GET_INTERFACE and GET_CONNECTION_INFO. The host waits for one event each. */
+static bool status_cmd(const struct nrf_wifi_umac_hdr *hdr)
+{
+	struct nsim_wifi_sta sta = { 0 };
+
+	if (conn.connected && umac_sim_host_ready) {
+		int ret = nsim_wifi_sta_get(conn.bssid, &sta);
+
+		LOG_DBG("GET_STATION: %d, signal %d dBm, tx rate %u", ret, sta.signal_dbm,
+			sta.tx_bitrate);
+		if (!ret && sta.signal_dbm) {
+			umac_sim_rx_signal_mbm = sta.signal_dbm * 100;
+		}
+	}
+
+	switch (hdr->cmd_evnt) {
+	case NRF_WIFI_UMAC_CMD_GET_STATION: {
+		struct nrf_wifi_umac_event_new_station evt = { 0 };
+		struct nrf_wifi_sta_info *si = &evt.sta_info;
+
+		memcpy(evt.mac_addr, conn.bssid, sizeof(evt.mac_addr));
+		if (conn.connected) {
+			si->valid_fields = NRF_WIFI_STA_INFO_SIGNAL_VALID |
+					   NRF_WIFI_STA_INFO_SIGNAL_AVG_VALID |
+					   NRF_WIFI_STA_INFO_RX_BYTES_VALID |
+					   NRF_WIFI_STA_INFO_TX_BYTES_VALID |
+					   NRF_WIFI_STA_INFO_RX_PACKETS_VALID |
+					   NRF_WIFI_STA_INFO_TX_PACKETS_VALID;
+			si->signal = sta.signal_dbm;
+			si->signal_avg = sta.signal_dbm;
+			si->rx_bytes = sta.rx_bytes;
+			si->tx_bytes = sta.tx_bytes;
+			si->rx_packets = sta.rx_packets;
+			si->tx_packets = sta.tx_packets;
+			if (sta.tx_bitrate) {
+				si->valid_fields |= NRF_WIFI_STA_INFO_TX_BITRATE_VALID;
+				si->tx_bitrate.valid_fields = NRF_WIFI_RATE_INFO_BITRATE_VALID;
+				si->tx_bitrate.bitrate = sta.tx_bitrate;
+			}
+		}
+		umac_evt_send(hdr, NRF_WIFI_UMAC_EVENT_GET_STATION, &evt, sizeof(evt), 0);
+		return true;
+	}
+	case NRF_WIFI_UMAC_CMD_GET_INTERFACE: {
+		struct nrf_wifi_interface_info evt = { 0 };
+
+		evt.nrf_wifi_iftype = NRF_WIFI_IFTYPE_STATION;
+		evt.chan_def.chan.center_frequency = conn.freq;
+		evt.chan_def.width = NRF_WIFI_CHAN_WIDTH_20;
+		evt.chan_def.center_frequency1 = conn.freq;
+		umac_evt_send(hdr, NRF_WIFI_UMAC_EVENT_NEW_INTERFACE, &evt, sizeof(evt), 0);
+		return true;
+	}
+	case NRF_WIFI_UMAC_CMD_GET_CONNECTION_INFO: {
+		struct nrf_wifi_umac_event_conn_info evt = { 0 };
+
+		evt.associated = conn.connected;
+		evt.beacon_interval = sta.beacon_int;
+		evt.dtim_interval = sta.dtim_period;
+		umac_evt_send(hdr, NRF_WIFI_UMAC_EVENT_GET_CONNECTION_INFO, &evt, sizeof(evt), 0);
+		return true;
+	}
+	default:
+		return false;
+	}
+}
+
 void umac_conn_cmd(const struct nrf_wifi_umac_hdr *hdr, size_t len)
 {
 	int ret = -ENODEV;
+
+	if (status_cmd(hdr)) {
+		cmd_status_send(hdr, 0);
+		return;
+	}
 
 	conn.hdr = *hdr;
 

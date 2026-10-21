@@ -37,6 +37,9 @@ void umac_scan_host_evt(int evt);
 void umac_conn_cmd(const struct nrf_wifi_umac_hdr *hdr, size_t len);
 void umac_conn_host_evt(int evt, const uint8_t *frame, int frame_len);
 
+/* Signal in mBm put in RX_BUFF events. Updated from the kernel station info. */
+extern int16_t umac_sim_rx_signal_mbm;
+
 void umac_data_rx_buf_cfg(const struct nrf_wifi_umac_hdr *hdr);
 void umac_data_tx(const struct nrf_wifi_tx_buff *tx);
 void umac_data_rx_poll(void);

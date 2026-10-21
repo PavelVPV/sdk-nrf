@@ -319,6 +319,76 @@ int nsim_wifi_deauth(const uint8_t *bssid, uint16_t reason)
 	return nl_transact(&m, NULL, NULL);
 }
 
+static int sta_cb(struct nlmsghdr *nlh, void *arg)
+{
+	struct nsim_wifi_sta *sta = arg;
+	struct nlattr *tb[NL80211_ATTR_MAX + 1];
+	struct nlattr *si[NL80211_STA_INFO_MAX + 1];
+
+	genl_attrs(nlh, tb, NL80211_ATTR_MAX);
+	if (!tb[NL80211_ATTR_STA_INFO]) {
+		return 0;
+	}
+	attrs_parse(si, NL80211_STA_INFO_MAX, attr_data(tb[NL80211_ATTR_STA_INFO]),
+		    attr_len(tb[NL80211_ATTR_STA_INFO]));
+
+	if (si[NL80211_STA_INFO_SIGNAL]) {
+		sta->signal_dbm = *(int8_t *)attr_data(si[NL80211_STA_INFO_SIGNAL]);
+	}
+	if (si[NL80211_STA_INFO_RX_BYTES]) {
+		sta->rx_bytes = *(uint32_t *)attr_data(si[NL80211_STA_INFO_RX_BYTES]);
+	}
+	if (si[NL80211_STA_INFO_TX_BYTES]) {
+		sta->tx_bytes = *(uint32_t *)attr_data(si[NL80211_STA_INFO_TX_BYTES]);
+	}
+	if (si[NL80211_STA_INFO_RX_PACKETS]) {
+		sta->rx_packets = *(uint32_t *)attr_data(si[NL80211_STA_INFO_RX_PACKETS]);
+	}
+	if (si[NL80211_STA_INFO_TX_PACKETS]) {
+		sta->tx_packets = *(uint32_t *)attr_data(si[NL80211_STA_INFO_TX_PACKETS]);
+	}
+	if (si[NL80211_STA_INFO_TX_BITRATE]) {
+		struct nlattr *r[NL80211_RATE_INFO_MAX + 1];
+
+		attrs_parse(r, NL80211_RATE_INFO_MAX, attr_data(si[NL80211_STA_INFO_TX_BITRATE]),
+			    attr_len(si[NL80211_STA_INFO_TX_BITRATE]));
+		if (r[NL80211_RATE_INFO_BITRATE32]) {
+			sta->tx_bitrate = *(uint32_t *)attr_data(r[NL80211_RATE_INFO_BITRATE32]);
+		} else if (r[NL80211_RATE_INFO_BITRATE]) {
+			sta->tx_bitrate = *(uint16_t *)attr_data(r[NL80211_RATE_INFO_BITRATE]);
+		}
+	}
+	if (si[NL80211_STA_INFO_BSS_PARAM]) {
+		struct nlattr *b[NL80211_STA_BSS_PARAM_MAX + 1];
+
+		attrs_parse(b, NL80211_STA_BSS_PARAM_MAX, attr_data(si[NL80211_STA_INFO_BSS_PARAM]),
+			    attr_len(si[NL80211_STA_INFO_BSS_PARAM]));
+		struct nlattr *bi = b[NL80211_STA_BSS_PARAM_BEACON_INTERVAL];
+		struct nlattr *dp = b[NL80211_STA_BSS_PARAM_DTIM_PERIOD];
+
+		if (bi) {
+			sta->beacon_int = *(uint16_t *)attr_data(bi);
+		}
+		if (dp) {
+			sta->dtim_period = *(uint8_t *)attr_data(dp);
+		}
+	}
+
+	return 0;
+}
+
+int nsim_wifi_sta_get(const uint8_t *bssid, struct nsim_wifi_sta *sta)
+{
+	struct nl_msg m;
+
+	memset(sta, 0, sizeof(*sta));
+	msg_init(&m, family_id, 0, NL80211_CMD_GET_STATION);
+	attr_put_u32(&m, NL80211_ATTR_IFINDEX, ifindex);
+	attr_put(&m, NL80211_ATTR_MAC, bssid, 6);
+
+	return nl_transact(&m, sta_cb, sta);
+}
+
 int nsim_wifi_key_new(const uint8_t *mac, int idx, uint32_t cipher, const uint8_t *key,
 		      int key_len, const uint8_t *seq, int seq_len)
 {
