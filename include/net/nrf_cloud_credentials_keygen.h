@@ -27,7 +27,9 @@ extern "C" {
  * over BLE, NFC, or another transport), instead of using the shell commands.
  *
  * This API is available when @kconfig{CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN} is
- * enabled.
+ * enabled. It is implemented by the TLS credentials on-device key generation
+ * (@kconfig{CONFIG_TLS_CREDENTIALS_KEYGEN}), which can also be used directly by
+ * other libraries.
  *
  * @note Only a single on-device key sec tag can be registered at a time. The
  *       nRF Cloud library uses one device key sec tag, and the opaque-key
