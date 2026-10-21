@@ -71,6 +71,11 @@ Also, for a successful TLS connection to the Azure IoT Hub instance, the device 
 If you want to test FOTA, ensure that also the required credentials for the file server are provisioned and the :kconfig:option:`CONFIG_AZURE_FOTA_SEC_TAG` Kconfig option is set accordingly.
 See :ref:`prereq_connect_to_azure_iot_hub` for information on provisioning the credentials.
 
+.. note::
+   For nRF70 Series and nRF54L Series devices, the device private key can be generated on the device instead.
+   To do so, add the :file:`keygen.conf` file to the configuration, for example ``-Dazure_iot_hub_EXTRA_CONF_FILE="wifi.conf;keygen.conf"``, and do not provide a :file:`private-key.pem` file.
+   See :ref:`azure_generate_certificates` for the steps.
+
 .. include:: /includes/wifi_credentials_shell.txt
 
 .. include:: /includes/wifi_credentials_static.txt

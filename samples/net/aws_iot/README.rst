@@ -96,6 +96,11 @@ For documentation related to FOTA DFU, see :ref:`lib_aws_fota`.
    For nRF70 Series devices, certificates must be provisioned at runtime.
    This is achieved by pasting the PEM content into the respective files in the :file:`certs/` subdirectory and ensuring the :kconfig:option:`CONFIG_MQTT_HELPER_PROVISION_CERTIFICATES` Kconfig option is enabled.
 
+.. note::
+   For nRF70 Series and nRF54L Series devices, the device private key can be generated on the device instead.
+   To do so, add the :file:`keygen.conf` file to the configuration, for example ``-Daws_iot_EXTRA_CONF_FILE="wifi.conf;keygen.conf"``, and do not provide a :file:`private-key.pem` file.
+   See :ref:`generating_and_provisioning_certificates` for the steps.
+
 Configuration options
 =====================
 
