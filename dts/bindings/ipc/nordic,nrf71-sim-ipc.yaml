@@ -1,0 +1,8 @@
+# Copyright (c) 2026 Nordic Semiconductor ASA
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+description: Simulated nRF71 Wi-Fi core IPC instance for native_sim
+
+compatible: "nordic,nrf71-sim-ipc"
+
+include: base.yaml
