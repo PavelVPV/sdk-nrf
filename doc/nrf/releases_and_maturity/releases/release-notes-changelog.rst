@@ -1183,6 +1183,9 @@ Libraries for networking
       The :kconfig:option:`CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN_VERIFY` Kconfig option (enabled by default) exports the on-device public key so that host tooling can verify the key against the device certificate.
       See :ref:`lib_nrf_cloud_credentials_keygen` for more information.
 
+  * Updated the on-device key and CSR generation to use the :ref:`lib_device_key` library (:kconfig:option:`CONFIG_DEVICE_KEY`).
+    The nRF Cloud API, the ``nrf_cloud_cred`` shell commands, and the Kconfig options are unchanged.
+
   * Fixed an issue where the library would always attempt an IPv6 connection to nRF Cloud, even if the device had no IPv6 address.
     This led to delays of seconds or tens of seconds, as well as unnecessary traffic and warnings.
     The library now checks for its own IPv6 (or IPv4) address before attempting a connection over that address family.

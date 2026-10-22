@@ -121,16 +121,6 @@ int nrf_cloud_init(const struct nrf_cloud_init_param *param)
 	}
 #endif
 
-#if defined(CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN)
-	/* Re-register an on-device key generated in a previous session from
-	 * Internal Trusted Storage. -ENOENT simply means no key exists yet.
-	 */
-	err = nrf_cloud_credentials_key_restore();
-	if (err && err != -ENOENT) {
-		LOG_WRN("Failed to restore on-device key, error: %d", err);
-	}
-#endif
-
 	/* Initialize the transport. */
 	err = nct_initialize(param);
 	if (err) {

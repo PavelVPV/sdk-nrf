@@ -16,6 +16,10 @@ Overview
 The private key is generated using the :ref:`PSA Crypto API <ug_psa_certified_api_overview_crypto>` as a persistent, non-exportable ECC P-256 key, stored using the :ref:`Secure Storage <secure_storage_in_ncs>`.
 The key is referenced for TLS by its PSA key ID through the ``TLS_CREDENTIAL_PRIVATE_KEY_PSA`` credential type, so the private key is never exported to the application or written to the TLS credentials store as raw key material.
 
+The key generation is implemented by the :ref:`lib_device_key` library (:kconfig:option:`CONFIG_DEVICE_KEY`), which the nRF Cloud library selects.
+Other libraries, such as :ref:`lib_mqtt_helper`, use it as well.
+The ``device-key`` shell commands of that library do the same as the ``nrf_cloud_cred`` commands, but require the CSR subject.
+
 A typical provisioning flow is as follows:
 
 1. If you do not already have one, create your own CA certificate and key (for example, using the :file:`create_ca_cert.py` script from nRF Cloud Utils) to sign your device certificates.
@@ -26,7 +30,7 @@ A typical provisioning flow is as follows:
 #. Onboard the device to your nRF Cloud account by uploading the device public key in a CSV file.
 #. Upload your self-signed CA certificate and the AWS root CA certificate (for CoAP, the nRF Cloud CoAP server root CA certificate) to the device.
 
-The device key is re-registered with the TLS credentials module from the Secure Storage during nRF Cloud initialization, so a key generated in a previous session is available for the TLS handshake after a reboot.
+The TLS credentials protected storage backend keeps the registration of the device key, so a key generated in a previous session is available for the TLS handshake after a reboot.
 
 Configuration
 *************

@@ -27,14 +27,10 @@ extern "C" {
  * over BLE, NFC, or another transport), instead of using the shell commands.
  *
  * This API is available when @kconfig{CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN} is
- * enabled.
- *
- * @note Only a single on-device key sec tag can be registered at a time. The
- *       nRF Cloud library uses one device key sec tag, and the opaque-key
- *       registration relies on a single backing slot, so generating or
- *       restoring a key for a second sec tag while another is registered is
- *       rejected. Delete the existing key first to switch to a different sec
- *       tag.
+ * enabled. It is implemented by the device key library
+ * (@kconfig{CONFIG_DEVICE_KEY}), which can also be used directly by other
+ * libraries. The sec tag is the PSA key ID of the key, so it must be in the PSA user key ID
+ * range, see @ref device_key.
  */
 
 /** @brief Generate the device private key on-device for the given sec tag.
@@ -46,9 +42,8 @@ extern "C" {
  * @param sec_tag The security tag the key is associated with.
  *
  * @retval 0 If successful.
+ * @retval -EINVAL If the sec tag is not in the PSA user key ID range.
  * @retval -EALREADY If a key already exists for the sec tag. Delete it first.
- * @retval -ENOTSUP If a key is already registered for a different sec tag.
- *                  Only one on-device key sec tag is supported at a time.
  * @return A negative value indicates an error.
  */
 int nrf_cloud_credentials_key_generate(uint32_t sec_tag);

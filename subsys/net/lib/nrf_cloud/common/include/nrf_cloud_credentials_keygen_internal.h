@@ -52,19 +52,6 @@ psa_key_id_t nrf_cloud_credentials_keygen_key_id(uint32_t sec_tag);
  */
 bool nrf_cloud_credentials_keygen_key_exists(uint32_t sec_tag);
 
-/** @brief Re-register the on-device device private key with the TLS credentials
- * module from PSA secure key storage.
- *
- * Called during nrf_cloud initialization so that a key generated in a previous
- * session is available for the TLS handshake after reboot. Operates on the sec
- * tag returned by @c nrf_cloud_sec_tag_get().
- *
- * @retval 0 If successful.
- * @retval -ENOENT If no on-device key exists for the nRF Cloud sec tag.
- * @return A negative value indicates an error.
- */
-int nrf_cloud_credentials_key_restore(void);
-
 #ifdef __cplusplus
 }
 #endif

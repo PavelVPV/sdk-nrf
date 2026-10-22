@@ -19,13 +19,11 @@
 
 #include <net/nrf_cloud.h>
 #include <net/nrf_cloud_credentials_keygen.h>
+#include <net/device_key.h>
 #include "nrf_cloud_credentials_keygen_internal.h"
 
 DEFINE_FFF_GLOBALS;
 
-/* Sec tags map directly to PSA user key ids (must be within
- * PSA_KEY_ID_USER_MIN..PSA_KEY_ID_USER_MAX).
- */
 #define TEST_SEC_TAG	 42
 #define TEST_SEC_TAG_2	 43
 #define TEST_DEVICE_ID	 "test-device-id"
@@ -48,8 +46,7 @@ static int client_id_get_custom(char *buf, size_t sz)
 }
 
 /* Bring the module and PSA back to a known state before each test. Deleting
- * both known sec tags destroys any generated key and frees the module's single
- * registration slot regardless of which tag was registered.
+ * both known sec tags destroys any generated key and its registration.
  */
 static void reset_state(void)
 {
@@ -95,9 +92,11 @@ ZTEST(keygen_api, test_generate_twice_is_ealready)
 
 ZTEST(keygen_api, test_invalid_sec_tag)
 {
-	/* sec tag 0 maps to PSA key id 0, below PSA_KEY_ID_USER_MIN. */
-	zassert_equal(nrf_cloud_credentials_key_generate(0), -EINVAL,
+	/* A sec tag outside of the PSA user key ID range. */
+	zassert_equal(nrf_cloud_credentials_key_generate(PSA_KEY_ID_USER_MAX + 1), -EINVAL,
 		      "out-of-range sec tag should be rejected");
+	zassert_equal(nrf_cloud_credentials_key_generate(UINT32_MAX), -EINVAL,
+		      "negative sec tag should be rejected");
 }
 
 ZTEST(keygen_api, test_delete)
@@ -108,15 +107,12 @@ ZTEST(keygen_api, test_delete)
 		      "key should be gone after delete");
 }
 
-ZTEST(keygen_api, test_single_sec_tag_conflict)
+ZTEST(keygen_api, test_two_sec_tags)
 {
 	zassert_ok(nrf_cloud_credentials_key_generate(TEST_SEC_TAG), "generate failed");
-
-	/* A second, different sec tag must be rejected without side effects. */
-	zassert_equal(nrf_cloud_credentials_key_generate(TEST_SEC_TAG_2), -ENOTSUP,
-		      "second sec tag should be rejected with -ENOTSUP");
-	zassert_false(nrf_cloud_credentials_keygen_key_exists(TEST_SEC_TAG_2),
-		      "rejected request must not leave a key behind");
+	zassert_ok(nrf_cloud_credentials_key_generate(TEST_SEC_TAG_2), "second generate failed");
+	zassert_true(nrf_cloud_credentials_keygen_key_exists(TEST_SEC_TAG));
+	zassert_true(nrf_cloud_credentials_keygen_key_exists(TEST_SEC_TAG_2));
 }
 
 ZTEST(keygen_api, test_delete_then_switch_sec_tag)
@@ -124,7 +120,7 @@ ZTEST(keygen_api, test_delete_then_switch_sec_tag)
 	zassert_ok(nrf_cloud_credentials_key_generate(TEST_SEC_TAG), "generate failed");
 	zassert_ok(nrf_cloud_credentials_key_delete(TEST_SEC_TAG), "delete failed");
 
-	/* Slot freed, so a different sec tag can now be used. */
+	/* A different sec tag can be used after the delete. */
 	zassert_ok(nrf_cloud_credentials_key_generate(TEST_SEC_TAG_2),
 		   "generate for a new sec tag after delete failed");
 }
