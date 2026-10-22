@@ -1150,6 +1150,9 @@ Libraries for networking
 
 * Added:
 
+  * The :ref:`lib_device_key` library (:kconfig:option:`CONFIG_DEVICE_KEY`, :ref:`experimental <software_maturity>`) that generates a device private key that never leaves the device, and a Certificate Signing Request (CSR) that the key signs.
+    The :ref:`lib_mqtt_helper` and :ref:`lib_nrf_cloud` libraries use it.
+
   * The :ref:`lib_dect_tethering` library (:kconfig:option:`CONFIG_DECT_TETHER_IPV6_LIB`, :ref:`experimental <software_maturity>`) that turns a DECT NR+ uplink into an IPv6 gateway (GW) for a tethered host on Ethernet, without relying on host-side SLAAC.
     It performs the following operations:
 

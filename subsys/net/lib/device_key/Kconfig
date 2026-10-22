@@ -1,0 +1,61 @@
+# Copyright (c) 2026 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+# The TLS credential of a device key is the PSA key ID. The volatile backend of the TLS
+# credentials module stores the pointer to the buffer that is passed to tls_credential_add(), not
+# a copy, so it would need a buffer for each registered key that stays valid. The protected
+# storage backend copies the credential, so the library does not need to store anything. It also
+# keeps the registration after a reboot.
+menuconfig DEVICE_KEY
+	bool "Device private key and CSR generation [EXPERIMENTAL]"
+	depends on TLS_CREDENTIALS_BACKEND_PROTECTED_STORAGE
+	select EXPERIMENTAL
+	select MBEDTLS
+	select MBEDTLS_PK_PARSE_C
+	select MBEDTLS_PK_WRITE_C
+	select MBEDTLS_X509_CSR_WRITE_C
+	select PSA_WANT_KEY_TYPE_ECC_KEY_PAIR_GENERATE
+	select PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY
+	select PSA_WANT_ALG_ECDSA
+	select PSA_WANT_ALG_SHA_256
+	select PSA_WANT_ECC_SECP_R1_256
+	help
+	  Generate a device private key with the PSA Crypto API and a Certificate Signing Request
+	  (CSR) that is signed by the key. The key is persistent and cannot be exported, so the
+	  private key never leaves the device. A security tag is the PSA key ID of the key, and the
+	  key is registered as a TLS credential of the security tag. The TLS credentials protected
+	  storage backend is required, because it copies the credential and keeps it after a reboot.
+
+if DEVICE_KEY
+
+config DEVICE_KEY_PUBLIC_EXPORT
+	bool "Export the public key"
+	default y
+	help
+	  Provide a function to export the public key of the device key. A host tool uses the public
+	  key to verify that the device key matches the installed device certificate.
+	  Disable to save a small amount of code.
+
+config DEVICE_KEY_SHELL
+	bool "Shell commands for the device key"
+	depends on SHELL
+	select BASE64
+	help
+	  Add the device-key shell commands: generate, csr, delete and, when
+	  DEVICE_KEY_PUBLIC_EXPORT is enabled, pubkey. The CSR and the public key are printed
+	  Base64 encoded, so that host tools, for example nrfcredstore, can read them.
+
+config DEVICE_KEY_SHELL_BUF_SIZE
+	int "Size of the buffer for the shell output"
+	depends on DEVICE_KEY_SHELL
+	default 512
+	help
+	  The size in bytes of the buffer for the DER encoded CSR or the public key before it is
+	  encoded as Base64. The default fits a CSR of an ECC P-256 key.
+
+module = DEVICE_KEY
+module-str = Device key
+source "$(ZEPHYR_BASE)/subsys/logging/Kconfig.template.log_config"
+
+endif # DEVICE_KEY

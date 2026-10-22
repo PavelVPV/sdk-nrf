@@ -184,6 +184,7 @@
 /doc/nrf/libraries/networking/icalendar_parser.rst @nrfconnect/ncs-doc-leads
 /doc/nrf/libraries/networking/index.rst   @nrfconnect/ncs-doc-leads
 /doc/nrf/libraries/networking/lwm2m_*.rst @nrfconnect/ncs-iot-oulu-tampere-doc
+/doc/nrf/libraries/networking/device_key.rst  @nrfconnect/ncs-cia-doc
 /doc/nrf/libraries/networking/mqtt_helper.rst @nrfconnect/ncs-cia-doc
 /doc/nrf/libraries/networking/nrf_802154_callbacks_dispatcher.rst @nrfconnect/ncs-thread @nrfconnect/ncs-terahertz-doc
 /doc/nrf/libraries/networking/nrf_cloud.rst @nrfconnect/ncs-nrf-cloud-doc
@@ -989,6 +990,7 @@
 /subsys/mpsl/fem/                         @nrfconnect/ncs-radio-sw
 /subsys/net/                              @nrfconnect/ncs-co-networking
 /subsys/net/l2_dect/                      @nrfconnect/ncs-dect-nr-plus
+/subsys/net/lib/device_key/               @nrfconnect/ncs-cia
 /subsys/net/lib/mqtt_helper/              @nrfconnect/ncs-cia
 /subsys/net/lib/azure_*                   @nrfconnect/ncs-cia
 /subsys/net/lib/aws_*                     @nrfconnect/ncs-cia
@@ -1137,6 +1139,7 @@
 /tests/subsys/net/lib/fota_download/      @nrfconnect/ncs-eris
 /tests/subsys/net/lib/lwm2m_*/            @nrfconnect/ncs-iot-oulu
 /tests/subsys/net/lib/mcumgr_smp_client/  @nrfconnect/ncs-cia
+/tests/subsys/net/lib/device_key/         @nrfconnect/ncs-cia
 /tests/subsys/net/lib/mqtt_helper/        @nrfconnect/ncs-cia
 /tests/subsys/net/lib/nrf_cloud/          @nrfconnect/ncs-nrf-cloud
 /tests/subsys/net/lib/nrf_provisioning/   @nrfconnect/ncs-iot-oulu
