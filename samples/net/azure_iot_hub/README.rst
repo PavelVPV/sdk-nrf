@@ -72,8 +72,10 @@ If you want to test FOTA, ensure that also the required credentials for the file
 See :ref:`prereq_connect_to_azure_iot_hub` for information on provisioning the credentials.
 
 .. note::
-   For nRF70 Series and nRF54L Series devices, the device private key can be generated on the device instead.
-   To do so, add the :file:`keygen.conf` file to the configuration, for example ``-Dazure_iot_hub_EXTRA_CONF_FILE="wifi.conf;keygen.conf"``, and do not provide a :file:`private-key.pem` file.
+   For nRF71 Series and nRF70 Series devices, the :file:`wifi.conf` file enables the :kconfig:option:`CONFIG_MQTT_HELPER_CREDENTIALS_KEYGEN` Kconfig option.
+   The device generates the private key and you install the certificates at runtime with the TLS credentials shell.
+   For nRF70 Series, this applies to an nRF70 Series device that is hosted by an nRF53 Series or nRF54 Series SoC.
+   To provision the PEM files from the :file:`certs/` subdirectory instead, enable the :kconfig:option:`CONFIG_MQTT_HELPER_PROVISION_CERTIFICATES` Kconfig option, which replaces the :kconfig:option:`CONFIG_MQTT_HELPER_CREDENTIALS_KEYGEN` option.
    See :ref:`azure_generate_certificates` for the steps.
 
 .. include:: /includes/wifi_credentials_shell.txt

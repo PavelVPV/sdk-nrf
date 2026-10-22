@@ -26,18 +26,21 @@ Additionally, configure the following options as per the needs of your applicati
 * :kconfig:option:`CONFIG_MQTT_HELPER_STACK_SIZE`
 * :kconfig:option:`CONFIG_MQTT_HELPER_RX_TX_BUFFER_SIZE`
 * :kconfig:option:`CONFIG_MQTT_HELPER_PAYLOAD_BUFFER_LEN`
-* :kconfig:option:`CONFIG_MQTT_HELPER_PROVISION_CERTIFICATES`
+* :kconfig:option:`CONFIG_MQTT_HELPER_PROVISION_CERTIFICATES` or :kconfig:option:`CONFIG_MQTT_HELPER_CREDENTIALS_KEYGEN` - Select one of them, as they exclude each other.
 * :kconfig:option:`CONFIG_MQTT_HELPER_CERTIFICATES_FOLDER`
+* :kconfig:option:`CONFIG_TLS_CREDENTIALS_SHELL_CRED_BUF_SIZE` - Set it to fit the certificate chain when you use :kconfig:option:`CONFIG_MQTT_HELPER_CREDENTIALS_KEYGEN`.
 
 On-device private key
 =====================
 
-When the :kconfig:option:`CONFIG_TLS_CREDENTIALS_KEYGEN` Kconfig option is enabled, the library registers a device private key that was generated on the device before it connects.
+When the :kconfig:option:`CONFIG_MQTT_HELPER_CREDENTIALS_KEYGEN` Kconfig option is enabled, the library registers a device private key that was generated on the device before it connects.
 The key is generated with the :ref:`TLS credentials shell <zephyr:tls_credentials_shell>` ``cred key`` commands or with the TLS credentials API, and it never leaves the device.
 The registration is not persistent, so the library calls the ``tls_credentials_key_restore()`` function for each security tag used for the connection every time it connects.
 A security tag that has no generated key is skipped.
 Only one security tag can hold a generated key.
-See :ref:`aws_iot` and :ref:`azure_iot_hub` for an example of how to generate the key and obtain the device certificate.
+The option enables the TLS credentials key generation (:kconfig:option:`CONFIG_TLS_CREDENTIALS_KEYGEN`), the TLS credentials shell, and PEM parsing.
+The certificates are then installed with the shell, for example with the ``nrfcredstore`` tool.
+See :ref:`lib_aws_iot` and :ref:`lib_azure_iot_hub` for an example of how to generate the key and obtain the device certificate.
 
 API documentation
 *****************

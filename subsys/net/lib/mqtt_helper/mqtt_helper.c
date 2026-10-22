@@ -16,7 +16,7 @@
 #include "mqtt-certs.h"
 #endif
 
-#if defined(CONFIG_MQTT_LIB_TLS) && defined(CONFIG_TLS_CREDENTIALS_KEYGEN)
+#if defined(CONFIG_MQTT_LIB_TLS) && defined(CONFIG_MQTT_HELPER_CREDENTIALS_KEYGEN)
 #include <zephyr/net/tls_credentials_keygen.h>
 #endif
 
@@ -642,7 +642,7 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 	tls_cfg->hostname = conn_params->hostname.ptr;
 	tls_cfg->set_native_tls = IS_ENABLED(CONFIG_MQTT_HELPER_NATIVE_TLS);
 
-#if defined(CONFIG_TLS_CREDENTIALS_KEYGEN)
+#if defined(CONFIG_MQTT_HELPER_CREDENTIALS_KEYGEN)
 	/* A private key generated on the device lives in PSA and is not registered with the TLS
 	 * credentials module after boot. Register it for the security tag that holds it. A
 	 * security tag without a generated key returns -ENOENT and is skipped.
@@ -655,7 +655,7 @@ static int client_connect(struct mqtt_helper_conn_params *conn_params)
 			return err;
 		}
 	}
-#endif /* defined(CONFIG_TLS_CREDENTIALS_KEYGEN) */
+#endif /* defined(CONFIG_MQTT_HELPER_CREDENTIALS_KEYGEN) */
 
 #if defined(CONFIG_MQTT_HELPER_PROVISION_CERTIFICATES)
 	err = certificates_provision();
