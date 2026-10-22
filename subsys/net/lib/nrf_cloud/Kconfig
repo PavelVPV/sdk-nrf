@@ -98,6 +98,7 @@ endchoice
 config NRF_CLOUD_CREDENTIALS_KEYGEN
 	bool "Generate the device private key and CSR on-device using PSA [EXPERIMENTAL]"
 	depends on NRF_CLOUD_CREDENTIALS_MGMT_TLS_CRED
+	depends on !NRF_CLOUD_PROVISION_CERTIFICATES
 	select EXPERIMENTAL
 	select TLS_CREDENTIALS
 	select TLS_CREDENTIALS_KEYGEN
@@ -112,6 +113,8 @@ config NRF_CLOUD_CREDENTIALS_KEYGEN
 	  credentials module on every boot during nrf_cloud initialization.
 	  The key generation is implemented by the TLS credentials library, see
 	  TLS_CREDENTIALS_KEYGEN.
+	  This option cannot be used together with NRF_CLOUD_PROVISION_CERTIFICATES, because
+	  the credentials installed at run time would conflict with the generated key.
 
 config NRF_CLOUD_CREDENTIALS_KEYGEN_VERIFY
 	bool "Export the on-device public key for verification"
