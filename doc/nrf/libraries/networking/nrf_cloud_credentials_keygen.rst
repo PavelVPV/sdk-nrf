@@ -18,6 +18,7 @@ It is a persistent, non-exportable ECDSA P-256 key, created with the :ref:`PSA C
 The key is registered for TLS by its PSA key ID through the ``TLS_CREDENTIAL_PRIVATE_KEY_PSA`` credential type, so the private key is never exported to the application or written to the TLS credentials store as raw key material.
 The TLS credentials protected storage backend keeps the registration after a reboot.
 The nRF Cloud library also signs its JSON Web Tokens with the key in PSA.
+On devices with a CRACEN KMU, the key is stored in the KMU, see :ref:`lib_tls_credentials_keygen_kmu`.
 
 A typical provisioning flow is as follows:
 
