@@ -336,8 +336,6 @@ static int periodic_coap_request_loop(void)
 	}
 
 	LOG_INF("Waiting for network...");
-	(void)conn_mgr_wait_ready(READY_MASK, NULL, K_FOREVER);
-	LOG_INF("Network ready");
 
 	while (true) {
 		if (sock < 0) {
@@ -345,7 +343,7 @@ static int periodic_coap_request_loop(void)
 			err = conn_mgr_wait_ready(READY_MASK, &last_seen,
 						  K_SECONDS(CONFIG_SAMPLE_RECONNECT_DELAY_SECONDS));
 			if (err == -EAGAIN) {
-				/* The network is not ready. Keep waiting. */
+				LOG_INF("Still waiting for network...");
 				continue;
 			} else if (err != 0) {
 				return err;
